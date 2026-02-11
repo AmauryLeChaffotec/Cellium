@@ -41,7 +41,7 @@ development_status:
   1-3-selection-cellules-navigation-clavier: review
   1-4-ajout-suppression-manuels-lignes-colonnes: review
   1-5-virtualisation-capacite-1000-lignes: review
-  1-6-persistence-indexeddb-auto-save: in-progress
+  1-6-persistence-indexeddb-auto-save: review
   epic-1-retrospective: optional
 
   epic-2: backlog

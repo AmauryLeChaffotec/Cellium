@@ -14,6 +14,13 @@ const { useAutoSave } = await import('./useAutoSave');
 const mockLoadGridData = loadGridData as ReturnType<typeof vi.fn>;
 const mockSaveGridData = saveGridData as ReturnType<typeof vi.fn>;
 
+// Flush microtask queue so loadGridData().then() resolves
+async function flushMicrotasks() {
+  await act(async () => {
+    await Promise.resolve();
+  });
+}
+
 describe('useAutoSave', () => {
   beforeEach(() => {
     vi.useFakeTimers();
@@ -34,9 +41,7 @@ describe('useAutoSave', () => {
   it('should call loadGridData on mount', async () => {
     mockLoadGridData.mockResolvedValue(null);
     renderHook(() => useAutoSave());
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushMicrotasks();
     expect(mockLoadGridData).toHaveBeenCalledOnce();
   });
 
@@ -48,9 +53,7 @@ describe('useAutoSave', () => {
     };
     mockLoadGridData.mockResolvedValue(storedData);
     renderHook(() => useAutoSave());
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushMicrotasks();
     const state = useGridStore.getState();
     expect(state.cells['A1']?.value).toBe('saved');
     expect(state.rowCount).toBe(500);
@@ -60,9 +63,7 @@ describe('useAutoSave', () => {
   it('should call initializeGrid(1000, 26) when no data in IndexedDB', async () => {
     mockLoadGridData.mockResolvedValue(null);
     renderHook(() => useAutoSave());
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushMicrotasks();
     const state = useGridStore.getState();
     expect(state.rowCount).toBe(1000);
     expect(state.colCount).toBe(26);
@@ -72,9 +73,7 @@ describe('useAutoSave', () => {
   it('should save after 30s when store has changed', async () => {
     mockLoadGridData.mockResolvedValue(null);
     renderHook(() => useAutoSave());
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushMicrotasks();
 
     // Trigger a change in the store
     act(() => {
@@ -99,14 +98,17 @@ describe('useAutoSave', () => {
   it('should not save after 30s when store has not changed', async () => {
     mockLoadGridData.mockResolvedValue(null);
     renderHook(() => useAutoSave());
+    await flushMicrotasks();
+
+    // Advance 30s to consume the dirty flag set by initializeGrid
     await act(async () => {
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(30_000);
     });
 
-    // Clear any calls from initialization
+    // Clear any calls from initialization cycle
     mockSaveGridData.mockClear();
 
-    // Advance 30 seconds without changing store
+    // Advance another 30 seconds without changing store
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
@@ -117,9 +119,7 @@ describe('useAutoSave', () => {
   it('should cleanup interval on unmount', async () => {
     mockLoadGridData.mockResolvedValue(null);
     const { unmount } = renderHook(() => useAutoSave());
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
+    await flushMicrotasks();
 
     // Trigger dirty
     act(() => {

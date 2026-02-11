@@ -1,6 +1,6 @@
 # Story 1.6: Persistence IndexedDB et Auto-Save
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -16,39 +16,39 @@ so that je ne perds jamais mon travail.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Créer `src/utils/persistence.ts` — adapter IndexedDB via `idb` (AC: #1, #2, #3)
-  - [ ] 1.1 Définir l'interface `CelliumDB` (extends `DBSchema`) avec object store `gridData`
-  - [ ] 1.2 Implémenter `getDB()` — singleton qui ouvre/crée la base `cellium` v1
-  - [ ] 1.3 Implémenter `saveGridData(data: GridPersistData)` — sauvegarde l'état grille
-  - [ ] 1.4 Implémenter `loadGridData()` — charge l'état grille (retourne `null` si aucune donnée)
-- [ ] Task 2: Créer `src/utils/persistence.test.ts` — tests unitaires adapter (AC: #1, #2)
-  - [ ] 2.1 Mocker `idb` (`openDB`) avec un objet DB fake in-memory
-  - [ ] 2.2 Tester `saveGridData` — appelle `db.put('gridData', data, 'current')`
-  - [ ] 2.3 Tester `loadGridData` — retourne données sauvegardées ou `null`
-  - [ ] 2.4 Tester `getDB` — appelle `openDB` une seule fois (singleton)
-- [ ] Task 3: Ajouter l'action `loadGrid` au gridStore (AC: #2, #3)
-  - [ ] 3.1 Ajouter `loadGrid(data: GridPersistData)` au store — set cells, rowCount, colCount
-  - [ ] 3.2 Ajouter tests pour `loadGrid` dans `gridStore.test.ts`
-- [ ] Task 4: Créer `src/hooks/useAutoSave.ts` — hook de chargement + auto-save (AC: #1, #2, #3)
-  - [ ] 4.1 Au mount : charger depuis IndexedDB, si données → `loadGrid()`, sinon → `initializeGrid(1000, 26)`
-  - [ ] 4.2 Abonner aux changements du store via `useGridStore.subscribe`, marquer dirty
-  - [ ] 4.3 Intervalle 30s : si dirty → `saveGridData()`, reset dirty
-  - [ ] 4.4 Cleanup : clearInterval au unmount
-- [ ] Task 5: Créer `src/hooks/useAutoSave.test.ts` — tests du hook (AC: #1, #2)
-  - [ ] 5.1 Mocker `persistence.ts` (`vi.mock`)
-  - [ ] 5.2 Tester chargement initial — loadGridData appelé, loadGrid si données
-  - [ ] 5.3 Tester chargement initial — initializeGrid si pas de données
-  - [ ] 5.4 Tester auto-save — save déclenché après 30s si dirty
-  - [ ] 5.5 Tester cleanup — intervalle nettoyé au unmount
-- [ ] Task 6: Intégrer dans SpreadsheetGrid.tsx (AC: #1, #2, #3)
-  - [ ] 6.1 Remplacer le `useEffect` d'initialisation par `useAutoSave()`
-  - [ ] 6.2 Le hook gère tout : chargement, initialisation, et auto-save
-- [ ] Task 7: Mettre à jour `SpreadsheetGrid.test.tsx` (AC: #1, #2)
-  - [ ] 7.1 Mocker `persistence.ts` dans les tests existants pour éviter les appels IndexedDB
-  - [ ] 7.2 S'assurer que tous les tests existants passent
-- [ ] Task 8: Validation finale (AC: #1, #2, #3)
-  - [ ] 8.1 `npm run build` compile sans erreur
-  - [ ] 8.2 Tous les tests passent (`npx vitest run`)
+- [x] Task 1: Créer `src/utils/persistence.ts` — adapter IndexedDB via `idb` (AC: #1, #2, #3)
+  - [x] 1.1 Définir l'interface `CelliumDB` (extends `DBSchema`) avec object store `gridData`
+  - [x] 1.2 Implémenter `getDB()` — singleton qui ouvre/crée la base `cellium` v1
+  - [x] 1.3 Implémenter `saveGridData(data: GridPersistData)` — sauvegarde l'état grille
+  - [x] 1.4 Implémenter `loadGridData()` — charge l'état grille (retourne `null` si aucune donnée)
+- [x] Task 2: Créer `src/utils/persistence.test.ts` — tests unitaires adapter (AC: #1, #2)
+  - [x] 2.1 Mocker `idb` (`openDB`) avec un objet DB fake in-memory
+  - [x] 2.2 Tester `saveGridData` — appelle `db.put('gridData', data, 'current')`
+  - [x] 2.3 Tester `loadGridData` — retourne données sauvegardées ou `null`
+  - [x] 2.4 Tester `getDB` — appelle `openDB` une seule fois (singleton)
+- [x] Task 3: Ajouter l'action `loadGrid` au gridStore (AC: #2, #3)
+  - [x] 3.1 Ajouter `loadGrid(data: GridPersistData)` au store — set cells, rowCount, colCount
+  - [x] 3.2 Ajouter tests pour `loadGrid` dans `gridStore.test.ts`
+- [x] Task 4: Créer `src/hooks/useAutoSave.ts` — hook de chargement + auto-save (AC: #1, #2, #3)
+  - [x] 4.1 Au mount : charger depuis IndexedDB, si données → `loadGrid()`, sinon → `initializeGrid(1000, 26)`
+  - [x] 4.2 Abonner aux changements du store via `useGridStore.subscribe`, marquer dirty
+  - [x] 4.3 Intervalle 30s : si dirty → `saveGridData()`, reset dirty
+  - [x] 4.4 Cleanup : clearInterval au unmount
+- [x] Task 5: Créer `src/hooks/useAutoSave.test.ts` — tests du hook (AC: #1, #2)
+  - [x] 5.1 Mocker `persistence.ts` (`vi.mock`)
+  - [x] 5.2 Tester chargement initial — loadGridData appelé, loadGrid si données
+  - [x] 5.3 Tester chargement initial — initializeGrid si pas de données
+  - [x] 5.4 Tester auto-save — save déclenché après 30s si dirty
+  - [x] 5.5 Tester cleanup — intervalle nettoyé au unmount
+- [x] Task 6: Intégrer dans SpreadsheetGrid.tsx (AC: #1, #2, #3)
+  - [x] 6.1 Remplacer le `useEffect` d'initialisation par `useAutoSave()`
+  - [x] 6.2 Le hook gère tout : chargement, initialisation, et auto-save
+- [x] Task 7: Mettre à jour `SpreadsheetGrid.test.tsx` (AC: #1, #2)
+  - [x] 7.1 Mocker `persistence.ts` dans les tests existants pour éviter les appels IndexedDB
+  - [x] 7.2 S'assurer que tous les tests existants passent
+- [x] Task 8: Validation finale (AC: #1, #2, #3)
+  - [x] 8.1 `npm run build` compile sans erreur
+  - [x] 8.2 Tous les tests passent (`npx vitest run`)
 
 ## Dev Notes
 
@@ -323,11 +323,33 @@ frontend/src/
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+Claude Opus 4.6
 
 ### Debug Log References
 
+- `vi.runAllTimersAsync()` causes infinite loop with `setInterval` — replaced with `flushMicrotasks()` helper (`await act(async () => { await Promise.resolve(); })`) + `vi.advanceTimersByTimeAsync(30_000)` for targeted interval testing
+- `initializeGrid()` triggers zustand subscriber → sets dirty flag → must consume first dirty cycle before testing "no save when unchanged"
+
 ### Completion Notes List
 
+- `persistence.ts`: Singleton `getDB()`, `saveGridData()`, `loadGridData()` — adapter IndexedDB via `idb` v8
+- `persistence.test.ts`: 5 tests — mock `idb`, test singleton, put/get operations, null handling
+- `gridStore.ts`: Added `loadGrid(data)` action — sets cells/rowCount/colCount, resets transient state
+- `gridStore.test.ts`: Added 3 `loadGrid` tests (load, reset, replace)
+- `useAutoSave.ts`: Hook handles full lifecycle — load from IndexedDB on mount, dirty-flag subscription, 30s auto-save interval, cleanup on unmount
+- `useAutoSave.test.ts`: 6 tests — mock persistence, test load/init/save/no-save/cleanup with fake timers
+- `SpreadsheetGrid.tsx`: Replaced `initializeGrid` useEffect with `useAutoSave()` hook
+- `SpreadsheetGrid.test.tsx`: Added `vi.mock('../../utils/persistence')` to prevent IndexedDB calls in component tests
+- All 139 tests pass, build clean
+
 ### File List
+
+- `frontend/src/utils/persistence.ts` (new)
+- `frontend/src/utils/persistence.test.ts` (new)
+- `frontend/src/stores/gridStore.ts` (modified — added loadGrid action)
+- `frontend/src/stores/gridStore.test.ts` (modified — added loadGrid tests)
+- `frontend/src/hooks/useAutoSave.ts` (new)
+- `frontend/src/hooks/useAutoSave.test.ts` (new)
+- `frontend/src/components/Grid/SpreadsheetGrid.tsx` (modified — useAutoSave integration)
+- `frontend/src/components/Grid/SpreadsheetGrid.test.tsx` (modified — persistence mock)
 
