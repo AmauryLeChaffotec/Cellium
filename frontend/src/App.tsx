@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { SpreadsheetGrid } from './components/Grid';
-import { CommandBar } from './components/CommandBar';
 import { DiffOverlay, ActionBar } from './components/Diff';
 import { VersionPanel } from './components/Version';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
@@ -28,7 +27,6 @@ function App() {
           Historique
         </button>
       </header>
-      <CommandBar />
       <div className="relative">
         <SpreadsheetGrid />
         <DiffOverlay />
