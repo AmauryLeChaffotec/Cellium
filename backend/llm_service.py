@@ -30,13 +30,24 @@ Si la commande est ambiguë ou manque d'information, retourne:
 { "operations": [], "clarification": "Pouvez-vous préciser..." }
 
 Exemples:
-- Commande: "Ajoute une colonne Prix avec les valeurs 10, 20, 30"
-  → { "operations": [{ "type": "INSERT_COLUMN", "afterCol": "B", "header": "Prix", "cells": [{"id": "C1", "value": 10}, {"id": "C2", "value": 20}, {"id": "C3", "value": 30}] }], "description": "Colonne Prix ajoutée avec 3 valeurs" }
+- Commande: "Ajoute une colonne nommée Prix" (contexte: 2 lignes de données en colonnes A-B)
+  → { "operations": [{ "type": "INSERT_COLUMN", "afterCol": "B", "header": "Prix", "cells": [{"id": "C1", "value": "Prix"}] }], "description": "Colonne nommée Prix ajoutée après la colonne B" }
+- Commande: "Ajoute une colonne Prix avec les valeurs 10, 20"
+  → { "operations": [{ "type": "INSERT_COLUMN", "afterCol": "B", "header": "Prix", "cells": [{"id": "C1", "value": "Prix"}, {"id": "C2", "value": 10}, {"id": "C3", "value": 20}] }], "description": "Colonne Prix ajoutée avec 2 valeurs" }
+- Commande: "Calcule la moyenne de la colonne B" (avec B1=5, B2=10 dans le contexte)
+  → { "operations": [{ "type": "SET_FORMULA", "cellId": "B3", "formula": "=AVERAGE(B1:B2)" }], "description": "Formule pour calculer la moyenne de la colonne B ajoutée en B3" }
 
 Règles strictes:
 - Toujours retourner du JSON valide
 - Les cellIds sont au format "A1", "B5" (lettre majuscule + numéro)
 - Ne jamais inventer de données — utilise le contexte fourni
+- IMPORTANT: Utilise UNIQUEMENT les lignes qui contiennent des données visibles dans le contexte
+- Pour les formules/calculs, place le résultat dans la PREMIÈRE CELLULE VIDE de la colonne concernée (jamais au-delà de la ligne 10 sauf si spécifié)
+- Pour INSERT_COLUMN:
+  * Si un nom de colonne est demandé (ex: "Prix"), mets ce nom dans la première cellule (ex: C1)
+  * Ajoute ensuite les valeurs demandées dans les cellules suivantes de cette colonne (ex: C2, C3, etc.)
+  * Le champ "header" doit contenir le nom de la colonne
+- Ne place JAMAIS de résultats dans des lignes au-delà du nombre de lignes avec données + 1
 """
 
 
@@ -78,14 +89,22 @@ def build_user_prompt(command: str, grid_context: dict[str, Any]) -> str:
     row_count = grid_context.get("rowCount", 0)
     sample_rows = grid_context.get("sampleRows", [])
 
+    # Count actual data rows (rows with at least one value)
+    actual_data_rows = len([row for row in sample_rows if any(
+        cell.get('value') for cell in row.values() if isinstance(cell, dict)
+    )])
+
     return f"""Commande: {command}
 
 Contexte de la grille:
 - Colonnes: {headers}
 - Types de colonnes: {column_types}
-- Nombre de lignes: {row_count}
-- Exemples de lignes:
+- Nombre total de lignes dans la grille: {row_count}
+- Nombre de lignes contenant des données: {actual_data_rows}
+- Exemples de lignes avec données:
 {format_sample_rows(sample_rows)}
+
+IMPORTANT: Place les résultats dans les lignes contenant des données ou juste après (ligne {actual_data_rows + 1}), PAS à la ligne {row_count}.
 
 Retourne le JSON avec operations et description.
 """

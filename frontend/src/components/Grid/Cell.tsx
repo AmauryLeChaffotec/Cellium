@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from 'react';
 import { useGridStore } from '../../stores/gridStore';
 import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
+import { evaluateFormula } from '../../utils/formulaEvaluator';
 
 interface CellProps {
   cellId: string;
@@ -14,7 +15,10 @@ function parseValue(input: string): string | number {
 }
 
 export function Cell({ cellId }: CellProps) {
-  const cellValue = useGridStore((s) => s.cells[cellId]?.value ?? null);
+  const cell = useGridStore((s) => s.cells[cellId]);
+  const cellValue = cell?.value ?? null;
+  const cellFormula = cell?.formula;
+  const allCells = useGridStore((s) => s.cells);
   const isEditing = useGridStore((s) => s.editingCell === cellId);
   const isSelected = useGridStore((s) => s.selectedCell === cellId);
   const setCell = useGridStore((s) => s.setCell);
@@ -27,14 +31,21 @@ export function Cell({ cellId }: CellProps) {
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      setInputValue(cellValue !== null ? String(cellValue) : '');
+      // When editing, show the formula if present, otherwise show the value
+      const editValue = cellFormula || (cellValue !== null ? String(cellValue) : '');
+      setInputValue(editValue);
       inputRef.current.focus();
     }
-  }, [isEditing, cellValue]);
+  }, [isEditing, cellValue, cellFormula]);
 
   const handleSave = () => {
-    const parsed = parseValue(inputValue);
-    setCell(cellId, parsed === '' ? null : parsed);
+    // If input starts with '=', treat it as a formula
+    if (inputValue.startsWith('=')) {
+      setCell(cellId, inputValue, { formula: inputValue });
+    } else {
+      const parsed = parseValue(inputValue);
+      setCell(cellId, parsed === '' ? null : parsed);
+    }
     stopEditing();
   };
 
@@ -86,6 +97,16 @@ export function Cell({ cellId }: CellProps) {
     );
   }
 
+  // Determine what to display: evaluated formula or raw value
+  const displayValue = (() => {
+    if (cellFormula) {
+      // If cell has a formula, evaluate it
+      const result = evaluateFormula(cellFormula, allCells);
+      return result !== null ? String(result) : '';
+    }
+    return cellValue !== null ? String(cellValue) : '';
+  })();
+
   return (
     <div
       className={`w-full h-full px-1 text-sm truncate cursor-default leading-8 ${
@@ -95,7 +116,7 @@ export function Cell({ cellId }: CellProps) {
       onDoubleClick={() => startEditing(cellId)}
       data-testid={`cell-${cellId}`}
     >
-      {cellValue !== null ? String(cellValue) : ''}
+      {displayValue}
     </div>
   );
 }
