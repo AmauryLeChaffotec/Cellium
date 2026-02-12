@@ -44,12 +44,12 @@ development_status:
   1-6-persistence-indexeddb-auto-save: review
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-backend-flask-proxy-llm: backlog
-  2-2-barre-de-commande-ia: backlog
-  2-3-moteur-operations-grille: backlog
-  2-4-diff-visuel-propositions-ia: backlog
-  2-5-validation-refus-garantie-controle: backlog
+  epic-2: in-progress
+  2-1-backend-flask-proxy-llm: review
+  2-2-barre-de-commande-ia: review
+  2-3-moteur-operations-grille: review
+  2-4-diff-visuel-propositions-ia: review
+  2-5-validation-refus-garantie-controle: review
   epic-2-retrospective: optional
 
   epic-3: backlog

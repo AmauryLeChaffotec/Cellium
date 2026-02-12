@@ -1,1 +1,2 @@
-// Diff component exports
+export { DiffOverlay } from './DiffOverlay';
+export { ActionBar } from './ActionBar';

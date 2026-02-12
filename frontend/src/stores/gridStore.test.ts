@@ -232,10 +232,10 @@ describe('gridStore', () => {
       expect(useGridStore.getState().cells['B1']?.value).toBe('at');
     });
 
-    it('should be no-op if colCount is 26', () => {
+    it('should allow inserting beyond 26 columns for AI operations', () => {
       useGridStore.setState({ colCount: 26 });
       useGridStore.getState().insertColumn(5);
-      expect(useGridStore.getState().colCount).toBe(26);
+      expect(useGridStore.getState().colCount).toBe(27);
     });
 
     it('should shift selectedCell if to the right of afterCol', () => {

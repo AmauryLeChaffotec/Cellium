@@ -1,7 +1,7 @@
 import type { Cell, CellFormat } from './cell';
 
 export type Operation =
-  | { type: 'SET_VALUE'; cellId: string; value: string | number }
+  | { type: 'SET_VALUE'; cellId: string; value: string | number | null }
   | { type: 'SET_FORMULA'; cellId: string; formula: string }
   | { type: 'INSERT_ROW'; afterRow: number; cells: Cell[] }
   | { type: 'INSERT_COLUMN'; afterCol: string; header: string; cells: Cell[] }

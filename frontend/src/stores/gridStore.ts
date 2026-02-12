@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Grid } from '../types/cell';
+import type { Grid, CellFormat } from '../types/cell';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId } from '../utils/cellUtils';
 
@@ -14,7 +14,11 @@ interface GridState {
 
 interface GridActions {
   initializeGrid: (rows: number, cols: number) => void;
-  setCell: (id: string, value: string | number | null) => void;
+  setCell: (
+    id: string,
+    value: string | number | null,
+    options?: { formula?: string; format?: CellFormat }
+  ) => void;
   startEditing: (id: string) => void;
   stopEditing: () => void;
   selectCell: (id: string | null) => void;
@@ -40,12 +44,18 @@ export const useGridStore = create<GridState & GridActions>()(
         state.colCount = cols;
       }),
 
-    setCell: (id, value) =>
+    setCell: (id, value, options) =>
       set((state) => {
-        if (value === null || value === '') {
+        // Only delete if value is empty AND no format/formula
+        if ((value === null || value === '') && !options?.formula && !options?.format) {
           delete state.cells[id];
         } else {
-          state.cells[id] = { id, value };
+          state.cells[id] = {
+            id,
+            value: value ?? '',
+            ...(options?.formula && { formula: options.formula }),
+            ...(options?.format && { format: options.format }),
+          };
         }
       }),
 
@@ -131,8 +141,8 @@ export const useGridStore = create<GridState & GridActions>()(
 
     insertColumn: (afterCol) =>
       set((state) => {
-        if (state.colCount >= 26) return;
-
+        // Allow inserting beyond 26 columns for AI operations
+        // (Note: Display is limited to A-Z, but operations can work beyond)
         const newCells: Grid = {};
         for (const [id, cell] of Object.entries(state.cells)) {
           const { row, col } = cellIdToCoords(id);
