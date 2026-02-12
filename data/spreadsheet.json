@@ -1,0 +1,13 @@
+{
+  "grid": {
+    "cells": {
+      "B1": {
+        "id": "B1",
+        "value": "test"
+      }
+    },
+    "rowCount": 100,
+    "colCount": 26
+  },
+  "snapshots": []
+}
