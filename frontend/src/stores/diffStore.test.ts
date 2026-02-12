@@ -1,8 +1,15 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useDiffStore } from './diffStore';
 import { useGridStore } from './gridStore';
+
+// Mock versionPersistence to avoid IndexedDB errors (Story 3.1)
+vi.mock('../utils/versionPersistence', () => ({
+  saveSnapshotToDB: vi.fn(() => Promise.resolve()),
+  loadSnapshotsFromDB: vi.fn(() => Promise.resolve([])),
+  clearSnapshotsFromDB: vi.fn(() => Promise.resolve()),
+}));
 
 describe('diffStore - Validation/Refusal', () => {
   beforeEach(() => {

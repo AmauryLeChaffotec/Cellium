@@ -1,7 +1,8 @@
 /**
- * DiffStore (Enhanced in Story 2.5)
+ * DiffStore (Enhanced in Story 2.5, Story 3.1)
  *
  * Manages pending AI operations, visual diff preview, and validation/rejection actions.
+ * Automatically creates version snapshots on successful validation (Story 3.1).
  */
 
 import { create } from 'zustand';
@@ -11,6 +12,7 @@ import type { DiffResult } from '../types/diff';
 import { applyOperations } from '../utils/operationsEngine';
 import { calculateDiff } from '../utils/diffCalculator';
 import { useGridStore } from './gridStore';
+import { useVersionStore } from './versionStore';
 
 interface DiffStore {
   pendingOperations: Operation[];
@@ -45,7 +47,7 @@ export const useDiffStore = create<DiffStore>()(
       }),
 
     applyPendingOperations: () => {
-      const { pendingOperations } = get();
+      const { pendingOperations, description } = get();
       if (pendingOperations.length === 0) return;
 
       set((state) => {
@@ -56,6 +58,11 @@ export const useDiffStore = create<DiffStore>()(
       try {
         // Apply all operations to gridStore
         applyOperations(pendingOperations);
+
+        // ✅ CREATE SNAPSHOT AFTER SUCCESSFUL APPLICATION (Story 3.1)
+        if (description) {
+          useVersionStore.getState().createSnapshot(pendingOperations, description);
+        }
 
         // Clear pending and preview after successful application
         set((state) => {

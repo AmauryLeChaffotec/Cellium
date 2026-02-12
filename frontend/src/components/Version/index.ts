@@ -1,1 +1,2 @@
-// Version component exports
+export { VersionPanel } from './VersionPanel';
+export { VersionItem } from './VersionItem';

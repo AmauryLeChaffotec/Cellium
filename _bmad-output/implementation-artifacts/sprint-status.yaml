@@ -52,8 +52,8 @@ development_status:
   2-5-validation-refus-garantie-controle: review
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-snapshots-automatiques-chaque-validation: backlog
-  3-2-historique-versions-consultable: backlog
-  3-3-restauration-version-un-clic: backlog
+  epic-3: in-progress
+  3-1-snapshots-automatiques-chaque-validation: review
+  3-2-historique-versions-consultable: review
+  3-3-restauration-version-un-clic: review
   epic-3-retrospective: optional
