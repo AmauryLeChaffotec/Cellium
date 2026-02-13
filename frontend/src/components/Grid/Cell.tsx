@@ -26,7 +26,7 @@ export function Cell({ cellId }: CellProps) {
   const stopEditing = useGridStore((s) => s.stopEditing);
   const selectCell = useGridStore((s) => s.selectCell);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
@@ -54,8 +54,13 @@ export function Cell({ cellId }: CellProps) {
     container?.focus();
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Enter sans Shift = nouvelle ligne (comportement par défaut du textarea)
+      return;
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      // Shift+Enter = valider et passer à la ligne suivante
+      e.preventDefault();
       handleSave();
       const { row, col } = cellIdToCoords(cellId);
       const rowCount = useGridStore.getState().rowCount;
@@ -83,14 +88,13 @@ export function Cell({ cellId }: CellProps) {
   if (isEditing) {
     return (
       <div className="w-full h-full border border-gray-200 p-0">
-        <input
+        <textarea
           ref={inputRef}
-          type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-full h-full border-2 border-blue-500 outline-none px-1 text-sm"
+          className="w-full h-full border-2 border-blue-500 outline-none px-1 text-sm resize-none"
           data-testid={`cell-input-${cellId}`}
         />
       </div>
@@ -109,7 +113,7 @@ export function Cell({ cellId }: CellProps) {
 
   return (
     <div
-      className={`w-full h-full px-1 text-sm truncate cursor-default leading-8 ${
+      className={`w-full h-full px-1 py-1 text-sm cursor-default break-words overflow-hidden ${
         isSelected ? 'ring-2 ring-blue-500 ring-inset border border-transparent' : 'border border-gray-200'
       }`}
       onClick={() => selectCell(cellId)}

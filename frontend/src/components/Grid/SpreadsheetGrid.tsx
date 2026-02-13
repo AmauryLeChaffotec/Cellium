@@ -19,16 +19,20 @@ interface ContextMenuState {
 export function SpreadsheetGrid() {
   const rowCount = useGridStore((s) => s.rowCount);
   const colCount = useGridStore((s) => s.colCount);
+  const colWidths = useGridStore((s) => s.colWidths);
+  const rowHeights = useGridStore((s) => s.rowHeights);
   const selectedCell = useGridStore((s) => s.selectedCell);
   const insertRow = useGridStore((s) => s.insertRow);
   const deleteRow = useGridStore((s) => s.deleteRow);
   const insertColumn = useGridStore((s) => s.insertColumn);
   const deleteColumn = useGridStore((s) => s.deleteColumn);
+  const setRowHeight = useGridStore((s) => s.setRowHeight);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
   const rwGridRef = useGridRef(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const rowDragRef = useRef<{ rowIndex: number; startY: number; startHeight: number } | null>(null);
 
   useKeyboardNav(containerRef);
   useAutoSave();
@@ -88,6 +92,35 @@ export function SpreadsheetGrid() {
     setContextMenu(null);
   }, []);
 
+  const handleRowResizeMouseDown = useCallback(
+    (e: React.MouseEvent, rowIndex: number) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startHeight = rowHeights[rowIndex] ?? 32;
+      rowDragRef.current = { rowIndex, startY: e.clientY, startHeight };
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (!rowDragRef.current) return;
+        const delta = moveEvent.clientY - rowDragRef.current.startY;
+        setRowHeight(rowDragRef.current.rowIndex, rowDragRef.current.startHeight + delta);
+      };
+
+      const handleMouseUp = () => {
+        rowDragRef.current = null;
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'row-resize';
+      document.body.style.userSelect = 'none';
+    },
+    [rowHeights, setRowHeight]
+  );
+
   function buildMenuItems(targetRow: number | null, targetCol: number | null): ContextMenuItem[] {
     const items: ContextMenuItem[] = [];
 
@@ -112,6 +145,9 @@ export function SpreadsheetGrid() {
 
     return items;
   }
+
+  const columnWidth = useCallback((index: number) => colWidths[index] ?? 100, [colWidths]);
+  const rowHeight = useCallback((index: number) => rowHeights[index] ?? 32, [rowHeights]);
 
   return (
     <div
@@ -140,9 +176,15 @@ export function SpreadsheetGrid() {
           <div
             key={i + 1}
             data-row-header={i + 1}
-            className="h-8 bg-gray-50 text-center text-gray-500 text-sm border border-gray-200 leading-8"
+            className="relative bg-gray-50 text-center text-gray-500 text-sm border border-gray-200 flex items-center justify-center"
+            style={{ height: rowHeights[i] ?? 32 }}
           >
             {i + 1}
+            {/* Row resize handle */}
+            <div
+              className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-blue-400 z-10"
+              onMouseDown={(e) => handleRowResizeMouseDown(e, i)}
+            />
           </div>
         ))}
       </div>
@@ -153,9 +195,9 @@ export function SpreadsheetGrid() {
         cellComponent={VirtualCell}
         cellProps={{} as Record<string, never>}
         columnCount={colCount}
-        columnWidth={100}
+        columnWidth={columnWidth}
         rowCount={rowCount}
-        rowHeight={32}
+        rowHeight={rowHeight}
         overscanCount={5}
         defaultHeight={600}
         defaultWidth={2600}

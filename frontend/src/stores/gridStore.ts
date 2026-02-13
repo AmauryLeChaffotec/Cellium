@@ -4,8 +4,19 @@ import type { Grid, CellFormat } from '../types/cell';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
 
+const DEFAULT_COL_WIDTH = 100;
+const DEFAULT_ROW_HEIGHT = 32;
+
 function defaultHeaders(count: number): string[] {
   return Array.from({ length: count }, (_, i) => columnIndexToLetter(i));
+}
+
+function defaultColWidths(count: number): number[] {
+  return Array.from({ length: count }, () => DEFAULT_COL_WIDTH);
+}
+
+function defaultRowHeights(count: number): number[] {
+  return Array.from({ length: count }, () => DEFAULT_ROW_HEIGHT);
 }
 
 interface GridState {
@@ -13,6 +24,8 @@ interface GridState {
   rowCount: number;
   colCount: number;
   headers: string[];
+  colWidths: number[];
+  rowHeights: number[];
   editingCell: string | null;
   selectedCell: string | null;
 }
@@ -31,6 +44,9 @@ interface GridActions {
   deleteRow: (row: number) => void;
   insertColumn: (afterCol: number) => void;
   deleteColumn: (col: number) => void;
+  setHeader: (colIndex: number, name: string) => void;
+  setColWidth: (colIndex: number, width: number) => void;
+  setRowHeight: (rowIndex: number, height: number) => void;
   loadGrid: (data: GridPersistData) => void;
 }
 
@@ -40,6 +56,8 @@ export const useGridStore = create<GridState & GridActions>()(
     rowCount: 100,
     colCount: 26,
     headers: defaultHeaders(26),
+    colWidths: defaultColWidths(26),
+    rowHeights: defaultRowHeights(100),
     editingCell: null,
     selectedCell: null,
 
@@ -49,6 +67,8 @@ export const useGridStore = create<GridState & GridActions>()(
         state.rowCount = rows;
         state.colCount = cols;
         state.headers = defaultHeaders(cols);
+        state.colWidths = defaultColWidths(cols);
+        state.rowHeights = defaultRowHeights(rows);
       }),
 
     setCell: (id, value, options) =>
@@ -95,6 +115,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
         state.cells = newCells;
         state.rowCount += 1;
+        state.rowHeights.splice(afterRow, 0, DEFAULT_ROW_HEIGHT);
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -127,6 +148,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
         state.cells = newCells;
         state.rowCount -= 1;
+        state.rowHeights.splice(targetRow - 1, 1);
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -163,6 +185,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.cells = newCells;
         state.colCount += 1;
         state.headers.splice(afterCol + 1, 0, columnIndexToLetter(state.colCount - 1));
+        state.colWidths.splice(afterCol + 1, 0, DEFAULT_COL_WIDTH);
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -196,6 +219,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.cells = newCells;
         state.colCount -= 1;
         state.headers.splice(targetCol, 1);
+        state.colWidths.splice(targetCol, 1);
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -215,12 +239,35 @@ export const useGridStore = create<GridState & GridActions>()(
         }
       }),
 
+    setHeader: (colIndex, name) =>
+      set((state) => {
+        if (colIndex >= 0 && colIndex < state.headers.length) {
+          state.headers[colIndex] = name;
+        }
+      }),
+
+    setColWidth: (colIndex, width) =>
+      set((state) => {
+        if (colIndex >= 0 && colIndex < state.colWidths.length) {
+          state.colWidths[colIndex] = Math.max(40, width);
+        }
+      }),
+
+    setRowHeight: (rowIndex, height) =>
+      set((state) => {
+        if (rowIndex >= 0 && rowIndex < state.rowHeights.length) {
+          state.rowHeights[rowIndex] = Math.max(20, height);
+        }
+      }),
+
     loadGrid: (data) =>
       set((state) => {
         state.cells = data.cells;
         state.rowCount = data.rowCount;
         state.colCount = data.colCount;
         state.headers = data.headers ?? defaultHeaders(data.colCount);
+        state.colWidths = data.colWidths ?? defaultColWidths(data.colCount);
+        state.rowHeights = data.rowHeights ?? defaultRowHeights(data.rowCount);
         state.editingCell = null;
         state.selectedCell = null;
       }),

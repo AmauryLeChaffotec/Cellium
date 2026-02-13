@@ -36,8 +36,8 @@ export function useAutoSave() {
     const saveInterval = setInterval(async () => {
       if (dirtyRef.current && !savingRef.current) {
         savingRef.current = true;
-        const { cells, rowCount, colCount, headers } = useGridStore.getState();
-        await saveGridData({ cells, rowCount, colCount, headers });
+        const { cells, rowCount, colCount, headers, colWidths, rowHeights } = useGridStore.getState();
+        await saveGridData({ cells, rowCount, colCount, headers, colWidths, rowHeights });
         dirtyRef.current = false;
         // Update lastmod after our own save so polling doesn't trigger a reload
         const t = await getLastModified();
