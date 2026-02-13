@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useVersionStore } from '../../stores/versionStore';
 import { VersionItem } from './VersionItem';
 
@@ -8,8 +8,9 @@ interface VersionPanelProps {
 }
 
 export function VersionPanel({ isOpen, onClose }: VersionPanelProps) {
-  const { snapshots, isLoading, createSnapshot } = useVersionStore();
+  const { snapshots, isLoading, createSnapshot, exportFile, importFile } = useVersionStore();
   const [name, setName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -60,6 +61,35 @@ export function VersionPanel({ isOpen, onClose }: VersionPanelProps) {
             Sauvegarder
           </button>
         </div>
+      </div>
+
+      {/* Export / Import */}
+      <div className="p-4 border-b border-gray-200 flex gap-2">
+        <button
+          onClick={exportFile}
+          className="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded border border-gray-300 hover:bg-gray-200"
+        >
+          Exporter (.cellium)
+        </button>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          className="flex-1 px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded border border-gray-300 hover:bg-gray-200"
+        >
+          Importer
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".cellium"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              importFile(file);
+              e.target.value = '';
+            }
+          }}
+        />
       </div>
 
       {/* Version list */}

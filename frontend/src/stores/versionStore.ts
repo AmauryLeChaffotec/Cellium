@@ -4,6 +4,7 @@ import type { Snapshot } from '../types/version';
 import { saveSnapshotToDB, loadSnapshotsFromDB } from '../utils/versionPersistence';
 import { useGridStore } from './gridStore';
 import { saveGridData } from '../utils/persistence';
+import { exportCelliumFile, parseCelliumFile, readFileAsText } from '../utils/celliumFile';
 
 interface VersionStore {
   snapshots: Snapshot[];
@@ -13,6 +14,8 @@ interface VersionStore {
   createSnapshot: (name: string) => void;
   loadSnapshots: () => Promise<void>;
   restoreFromSnapshot: (snapshotId: string) => void;
+  exportFile: () => void;
+  importFile: (file: File) => Promise<void>;
 }
 
 export const useVersionStore = create<VersionStore>()(
@@ -74,10 +77,8 @@ export const useVersionStore = create<VersionStore>()(
       });
 
       try {
-        // Load the saved grid state directly
         useGridStore.getState().loadGrid(target.gridData);
 
-        // Save to file immediately
         saveGridData(target.gridData).catch((error) => {
           console.error('Failed to save restored data:', error);
         });
@@ -90,6 +91,36 @@ export const useVersionStore = create<VersionStore>()(
         set((state) => {
           state.isRestoring = false;
         });
+      }
+    },
+
+    exportFile: () => {
+      const { cells, rowCount, colCount, headers, colWidths, rowHeights } = useGridStore.getState();
+      const { snapshots } = get();
+      exportCelliumFile({ cells, rowCount, colCount, headers, colWidths, rowHeights }, snapshots);
+    },
+
+    importFile: async (file) => {
+      try {
+        const content = await readFileAsText(file);
+        const celliumData = parseCelliumFile(content);
+
+        // Load grid
+        useGridStore.getState().loadGrid(celliumData.grid);
+        await saveGridData(celliumData.grid);
+
+        // Load snapshots
+        set((state) => {
+          state.snapshots = celliumData.snapshots;
+        });
+
+        // Persist each imported snapshot
+        for (const snapshot of celliumData.snapshots) {
+          await saveSnapshotToDB(snapshot);
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Erreur inconnue';
+        alert(message);
       }
     },
   }))
