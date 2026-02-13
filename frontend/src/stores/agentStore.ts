@@ -34,10 +34,7 @@ export const useAgentStore = create<AgentStore>()((set, get) => ({
       const res = await apiFetch('/api/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message,
-          history: messages,
-        }),
+        body: JSON.stringify({ message }),
       });
 
       if (!res.ok) {

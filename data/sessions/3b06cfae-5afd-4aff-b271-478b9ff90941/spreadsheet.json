@@ -99,7 +99,7 @@
     "headers": [
       "produit",
       "prix",
-      "C",
+      "description",
       "D",
       "E",
       "F",

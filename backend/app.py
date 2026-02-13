@@ -2,14 +2,12 @@ import json
 import logging
 import os
 import re
+import shutil
+import subprocess
 import uuid
 
-from dotenv import load_dotenv
-load_dotenv()
-
-from flask import Flask, Response, jsonify, request, stream_with_context
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from anthropic import Anthropic
 
 # Configure logging
 logging.basicConfig(
@@ -24,8 +22,7 @@ SESSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "sessions")
 DEFAULT_DATA = {"grid": {"cells": {}, "rowCount": 100, "colCount": 26}, "snapshots": []}
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
-# ── Agent (Anthropic API) ─────────────────────────────────────────
-anthropic_client = None
+# ── Agent (Claude Code CLI) ───────────────────────────────────────
 AGENT_GUIDE = ""
 
 _guide_path = os.path.join(os.path.dirname(__file__), "..", "AGENT_GUIDE.md")
@@ -33,45 +30,18 @@ if os.path.exists(_guide_path):
     with open(_guide_path, "r", encoding="utf-8") as f:
         AGENT_GUIDE = f.read()
 
-api_key = os.environ.get("ANTHROPIC_API_KEY")
-if api_key:
-    anthropic_client = Anthropic(api_key=api_key)
-    logger.info("Anthropic client initialized")
+CLAUDE_CMD = None
+_claude_path = shutil.which("claude")
+if _claude_path:
+    CLAUDE_CMD = [_claude_path]
+    logger.info("Claude CLI found at %s", _claude_path)
 else:
-    logger.warning("ANTHROPIC_API_KEY not set — agent endpoint will be unavailable")
-
-UPDATE_SPREADSHEET_TOOL = {
-    "name": "update_spreadsheet",
-    "description": (
-        "Modify the spreadsheet by adding, updating, or deleting cells. "
-        "Provide a dict of cells to set (cellId -> cell object) and optionally a list of cellIds to delete."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "cells_to_set": {
-                "type": "object",
-                "description": "Cells to add or update. Keys are cell IDs (e.g. 'B11'). Values are objects with id, value, and optionally formula and name.",
-                "additionalProperties": {
-                    "type": "object",
-                    "properties": {
-                        "id": {"type": "string"},
-                        "value": {},
-                        "formula": {"type": "string"},
-                        "name": {"type": "string"},
-                    },
-                    "required": ["id", "value"],
-                },
-            },
-            "cells_to_delete": {
-                "type": "array",
-                "items": {"type": "string"},
-                "description": "List of cell IDs to remove.",
-            },
-        },
-        "required": ["cells_to_set"],
-    },
-}
+    _npx_path = shutil.which("npx")
+    if _npx_path:
+        CLAUDE_CMD = [_npx_path, "--yes", "@anthropic-ai/claude-code"]
+        logger.info("Claude CLI available via npx")
+    else:
+        logger.warning("Neither claude nor npx found — agent endpoint will be unavailable")
 
 
 def _validate_session_id(session_id):
@@ -215,27 +185,13 @@ def get_lastmod():
     return jsonify({"lastmod": mtime})
 
 
-# ── Agent chat endpoint ────────────────────────────────────────────
-
-def _build_system_prompt(grid_data):
-    """Build the system prompt with AGENT_GUIDE + current spreadsheet context."""
-    grid_summary = json.dumps(grid_data, ensure_ascii=False, indent=2)
-    return (
-        f"{AGENT_GUIDE}\n\n"
-        "---\n\n"
-        "# Etat actuel du spreadsheet\n\n"
-        f"```json\n{grid_summary}\n```\n\n"
-        "Reponds toujours en francais. "
-        "Quand l'utilisateur demande une modification, utilise l'outil update_spreadsheet pour appliquer les changements. "
-        "Explique brievement ce que tu as fait apres chaque modification."
-    )
-
+# ── Agent chat endpoint (Claude Code CLI) ─────────────────────────
 
 @app.route("/api/agent/chat", methods=["POST"])
 def agent_chat():
-    """Send a user message to Claude and apply any spreadsheet modifications."""
-    if not anthropic_client:
-        return jsonify({"error": "ANTHROPIC_API_KEY not configured"}), 503
+    """Send a user message to Claude Code CLI which reads/edits the spreadsheet directly."""
+    if not CLAUDE_CMD:
+        return jsonify({"error": "Claude Code CLI not found. Install with: npm install -g @anthropic-ai/claude-code"}), 503
 
     session_id, error = _require_session()
     if error:
@@ -246,91 +202,59 @@ def agent_chat():
         return jsonify({"error": "Missing 'message' field"}), 400
 
     user_message = body["message"]
-    conversation_history = body.get("history", [])
+    data_file = os.path.abspath(_get_data_file(session_id))
 
-    # Read current spreadsheet data
-    current_data = _read_data(session_id)
-    grid_data = current_data.get("grid", {})
-
-    system_prompt = _build_system_prompt(grid_data)
-
-    # Build messages: history + new user message
-    messages = []
-    for msg in conversation_history:
-        messages.append({"role": msg["role"], "content": msg["content"]})
-    messages.append({"role": "user", "content": user_message})
+    # Build the full prompt: system context + user request
+    # The system context (AGENT_GUIDE + file path) is invisible to the user
+    full_prompt = (
+        f"{AGENT_GUIDE}\n\n"
+        "---\n\n"
+        f"Le fichier spreadsheet a modifier est : {data_file}\n\n"
+        "Lis ce fichier avec l'outil Read, comprends sa structure (cellules, zones, headers), "
+        "puis applique les modifications demandees par l'utilisateur en editant le fichier avec l'outil Edit.\n"
+        "Reponds toujours en francais.\n"
+        "Explique brievement ce que tu as fait.\n"
+        "Ne modifie que les cellules necessaires, ne touche pas aux snapshots ni aux autres champs.\n\n"
+        "---\n\n"
+        f"Demande de l'utilisateur : {user_message}"
+    )
 
     try:
-        # Call Claude with tool use
-        response = anthropic_client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            system=system_prompt,
-            tools=[UPDATE_SPREADSHEET_TOOL],
-            messages=messages,
+        logger.info("Calling Claude CLI for session %s: %s", session_id, user_message[:100])
+
+        # Clean env: remove CLAUDECODE (nested session block) and ANTHROPIC_API_KEY
+        # (forces CLI to use the user's Max/Pro subscription auth instead of API credits)
+        env = {k: v for k, v in os.environ.items() if k not in ("CLAUDECODE", "ANTHROPIC_API_KEY")}
+
+        result = subprocess.run(
+            [
+                *CLAUDE_CMD,
+                "-p", full_prompt,
+                "--allowedTools", "Read,Edit,Write",
+                "--max-turns", "10",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=120,
+            env=env,
         )
 
-        assistant_text = ""
-        tool_used = False
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or result.stdout.strip() or "Claude CLI returned an error"
+            logger.error("Claude CLI error: %s", error_msg)
+            return jsonify({"error": error_msg}), 500
 
-        # Process response — handle tool use loop
-        while response.stop_reason == "tool_use":
-            # Extract text blocks and tool use blocks
-            response_content = response.content
-            for block in response_content:
-                if block.type == "text":
-                    assistant_text += block.text
-                elif block.type == "tool_use" and block.name == "update_spreadsheet":
-                    tool_used = True
-                    tool_input = block.input
-
-                    # Apply changes to spreadsheet
-                    cells_to_set = tool_input.get("cells_to_set", {})
-                    cells_to_delete = tool_input.get("cells_to_delete", [])
-
-                    for cell_id, cell_data in cells_to_set.items():
-                        current_data["grid"]["cells"][cell_id] = cell_data
-
-                    for cell_id in cells_to_delete:
-                        current_data["grid"]["cells"].pop(cell_id, None)
-
-                    _write_data(session_id, current_data)
-
-                    # Continue conversation with tool result
-                    messages.append({"role": "assistant", "content": response_content})
-                    messages.append({
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "tool_result",
-                                "tool_use_id": block.id,
-                                "content": json.dumps({
-                                    "status": "ok",
-                                    "cells_updated": list(cells_to_set.keys()),
-                                    "cells_deleted": cells_to_delete,
-                                }),
-                            }
-                        ],
-                    })
-
-                    # Call again for Claude to provide a summary
-                    response = anthropic_client.messages.create(
-                        model="claude-sonnet-4-20250514",
-                        max_tokens=4096,
-                        system=system_prompt,
-                        tools=[UPDATE_SPREADSHEET_TOOL],
-                        messages=messages,
-                    )
-
-        # Extract final text from the response
-        for block in response.content:
-            if block.type == "text":
-                assistant_text += block.text
+        reply = result.stdout.strip()
+        logger.info("Claude CLI response for session %s: %s", session_id, reply[:200])
 
         return jsonify({
-            "reply": assistant_text,
-            "modified": tool_used,
+            "reply": reply,
+            "modified": True,
         })
+
+    except subprocess.TimeoutExpired:
+        logger.error("Claude CLI timeout for session %s", session_id)
+        return jsonify({"error": "L'agent a mis trop de temps a repondre (timeout 2min)"}), 504
 
     except Exception as e:
         logger.exception("Agent chat error")
