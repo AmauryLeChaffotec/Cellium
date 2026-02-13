@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { SpreadsheetGrid } from './components/Grid';
 import { DiffOverlay, ActionBar } from './components/Diff';
 import { VersionPanel } from './components/Version';
+import { AgentChat } from './components/Agent';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useVersionStore } from './stores/versionStore';
 import { initSession } from './utils/session';
@@ -46,6 +47,7 @@ function App() {
       </div>
       <ActionBar />
       <VersionPanel isOpen={isVersionPanelOpen} onClose={() => setIsVersionPanelOpen(false)} />
+      <AgentChat />
     </div>
   );
 }

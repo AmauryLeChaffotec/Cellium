@@ -69,4 +69,20 @@ export function useAutoSave() {
 
     return () => clearInterval(pollInterval);
   }, [loadGrid]);
+
+  // Instant reload when the agent modifies the spreadsheet
+  useEffect(() => {
+    const handleAgentModified = async () => {
+      const data = await loadGridData();
+      if (data) {
+        loadGrid(data);
+        dirtyRef.current = false;
+        const t = await getLastModified();
+        lastModRef.current = t;
+      }
+    };
+
+    window.addEventListener('cellium:agent-modified', handleAgentModified);
+    return () => window.removeEventListener('cellium:agent-modified', handleAgentModified);
+  }, [loadGrid]);
 }

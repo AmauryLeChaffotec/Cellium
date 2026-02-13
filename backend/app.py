@@ -4,8 +4,9 @@ import os
 import re
 import uuid
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
+from anthropic import Anthropic
 
 # Configure logging
 logging.basicConfig(
@@ -19,6 +20,55 @@ CORS(app)
 SESSIONS_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "sessions")
 DEFAULT_DATA = {"grid": {"cells": {}, "rowCount": 100, "colCount": 26}, "snapshots": []}
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+# ── Agent (Anthropic API) ─────────────────────────────────────────
+anthropic_client = None
+AGENT_GUIDE = ""
+
+_guide_path = os.path.join(os.path.dirname(__file__), "..", "AGENT_GUIDE.md")
+if os.path.exists(_guide_path):
+    with open(_guide_path, "r", encoding="utf-8") as f:
+        AGENT_GUIDE = f.read()
+
+api_key = os.environ.get("ANTHROPIC_API_KEY")
+if api_key:
+    anthropic_client = Anthropic(api_key=api_key)
+    logger.info("Anthropic client initialized")
+else:
+    logger.warning("ANTHROPIC_API_KEY not set — agent endpoint will be unavailable")
+
+UPDATE_SPREADSHEET_TOOL = {
+    "name": "update_spreadsheet",
+    "description": (
+        "Modify the spreadsheet by adding, updating, or deleting cells. "
+        "Provide a dict of cells to set (cellId -> cell object) and optionally a list of cellIds to delete."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "cells_to_set": {
+                "type": "object",
+                "description": "Cells to add or update. Keys are cell IDs (e.g. 'B11'). Values are objects with id, value, and optionally formula and name.",
+                "additionalProperties": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "value": {},
+                        "formula": {"type": "string"},
+                        "name": {"type": "string"},
+                    },
+                    "required": ["id", "value"],
+                },
+            },
+            "cells_to_delete": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "List of cell IDs to remove.",
+            },
+        },
+        "required": ["cells_to_set"],
+    },
+}
 
 
 def _validate_session_id(session_id):
@@ -160,6 +210,128 @@ def get_lastmod():
         return jsonify({"lastmod": 0})
     mtime = os.path.getmtime(data_file)
     return jsonify({"lastmod": mtime})
+
+
+# ── Agent chat endpoint ────────────────────────────────────────────
+
+def _build_system_prompt(grid_data):
+    """Build the system prompt with AGENT_GUIDE + current spreadsheet context."""
+    grid_summary = json.dumps(grid_data, ensure_ascii=False, indent=2)
+    return (
+        f"{AGENT_GUIDE}\n\n"
+        "---\n\n"
+        "# Etat actuel du spreadsheet\n\n"
+        f"```json\n{grid_summary}\n```\n\n"
+        "Reponds toujours en francais. "
+        "Quand l'utilisateur demande une modification, utilise l'outil update_spreadsheet pour appliquer les changements. "
+        "Explique brievement ce que tu as fait apres chaque modification."
+    )
+
+
+@app.route("/api/agent/chat", methods=["POST"])
+def agent_chat():
+    """Send a user message to Claude and apply any spreadsheet modifications."""
+    if not anthropic_client:
+        return jsonify({"error": "ANTHROPIC_API_KEY not configured"}), 503
+
+    session_id, error = _require_session()
+    if error:
+        return error
+
+    body = request.get_json()
+    if not body or not body.get("message"):
+        return jsonify({"error": "Missing 'message' field"}), 400
+
+    user_message = body["message"]
+    conversation_history = body.get("history", [])
+
+    # Read current spreadsheet data
+    current_data = _read_data(session_id)
+    grid_data = current_data.get("grid", {})
+
+    system_prompt = _build_system_prompt(grid_data)
+
+    # Build messages: history + new user message
+    messages = []
+    for msg in conversation_history:
+        messages.append({"role": msg["role"], "content": msg["content"]})
+    messages.append({"role": "user", "content": user_message})
+
+    try:
+        # Call Claude with tool use
+        response = anthropic_client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=4096,
+            system=system_prompt,
+            tools=[UPDATE_SPREADSHEET_TOOL],
+            messages=messages,
+        )
+
+        assistant_text = ""
+        tool_used = False
+
+        # Process response — handle tool use loop
+        while response.stop_reason == "tool_use":
+            # Extract text blocks and tool use blocks
+            response_content = response.content
+            for block in response_content:
+                if block.type == "text":
+                    assistant_text += block.text
+                elif block.type == "tool_use" and block.name == "update_spreadsheet":
+                    tool_used = True
+                    tool_input = block.input
+
+                    # Apply changes to spreadsheet
+                    cells_to_set = tool_input.get("cells_to_set", {})
+                    cells_to_delete = tool_input.get("cells_to_delete", [])
+
+                    for cell_id, cell_data in cells_to_set.items():
+                        current_data["grid"]["cells"][cell_id] = cell_data
+
+                    for cell_id in cells_to_delete:
+                        current_data["grid"]["cells"].pop(cell_id, None)
+
+                    _write_data(session_id, current_data)
+
+                    # Continue conversation with tool result
+                    messages.append({"role": "assistant", "content": response_content})
+                    messages.append({
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": block.id,
+                                "content": json.dumps({
+                                    "status": "ok",
+                                    "cells_updated": list(cells_to_set.keys()),
+                                    "cells_deleted": cells_to_delete,
+                                }),
+                            }
+                        ],
+                    })
+
+                    # Call again for Claude to provide a summary
+                    response = anthropic_client.messages.create(
+                        model="claude-sonnet-4-20250514",
+                        max_tokens=4096,
+                        system=system_prompt,
+                        tools=[UPDATE_SPREADSHEET_TOOL],
+                        messages=messages,
+                    )
+
+        # Extract final text from the response
+        for block in response.content:
+            if block.type == "text":
+                assistant_text += block.text
+
+        return jsonify({
+            "reply": assistant_text,
+            "modified": tool_used,
+        })
+
+    except Exception as e:
+        logger.exception("Agent chat error")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
