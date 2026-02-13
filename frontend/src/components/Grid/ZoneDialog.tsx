@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { Zone } from '../../types/zone';
 
 const PRESET_COLORS = [
   '#4CAF50', // vert
@@ -12,14 +13,18 @@ const PRESET_COLORS = [
 ];
 
 interface ZoneDialogProps {
+  /** If provided, dialog is in edit mode with pre-filled values */
+  zone?: Zone;
   onConfirm: (name: string, description: string, color: string) => void;
+  onDelete?: () => void;
   onCancel: () => void;
 }
 
-export function ZoneDialog({ onConfirm, onCancel }: ZoneDialogProps) {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [color, setColor] = useState(PRESET_COLORS[0]);
+export function ZoneDialog({ zone, onConfirm, onDelete, onCancel }: ZoneDialogProps) {
+  const isEdit = !!zone;
+  const [name, setName] = useState(zone?.name ?? '');
+  const [description, setDescription] = useState(zone?.description ?? '');
+  const [color, setColor] = useState(zone?.color ?? PRESET_COLORS[0]);
 
   const handleSubmit = () => {
     const trimmed = name.trim();
@@ -43,7 +48,9 @@ export function ZoneDialog({ onConfirm, onCancel }: ZoneDialogProps) {
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
-        <h3 className="text-lg font-semibold text-gray-800">Créer une zone</h3>
+        <h3 className="text-lg font-semibold text-gray-800">
+          {isEdit ? 'Modifier la zone' : 'Créer une zone'}
+        </h3>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
@@ -85,20 +92,32 @@ export function ZoneDialog({ onConfirm, onCancel }: ZoneDialogProps) {
           </div>
         </div>
 
-        <div className="flex gap-2 justify-end pt-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!name.trim()}
-            className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-          >
-            Créer
-          </button>
+        <div className="flex items-center justify-between pt-2">
+          {isEdit && onDelete ? (
+            <button
+              onClick={onDelete}
+              className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded border border-red-300"
+            >
+              Supprimer
+            </button>
+          ) : (
+            <div />
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded hover:bg-gray-200"
+            >
+              Annuler
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!name.trim()}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {isEdit ? 'Modifier' : 'Créer'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

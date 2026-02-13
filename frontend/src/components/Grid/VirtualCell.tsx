@@ -12,7 +12,7 @@ export function VirtualCell(props: {
   const cellId = coordsToCellId(row, props.columnIndex);
 
   return (
-    <div style={props.style}>
+    <div style={{ ...props.style, overflow: 'visible' }}>
       <Cell cellId={cellId} />
     </div>
   );

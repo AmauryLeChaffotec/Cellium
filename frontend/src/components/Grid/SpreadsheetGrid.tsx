@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Grid, useGridRef } from 'react-window';
 import { useGridStore } from '../../stores/gridStore';
-import { cellIdToCoords } from '../../utils/cellUtils';
-import { getSelectionRows, rangeToString } from '../../utils/rangeUtils';
+import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
+import { getSelectionRows, isCellInRange, rangeToString } from '../../utils/rangeUtils';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { GridHeader } from './GridHeader';
@@ -10,6 +10,7 @@ import { VirtualCell } from './VirtualCell';
 import { ContextMenu } from './ContextMenu';
 import type { ContextMenuItem } from './ContextMenu';
 import { ZoneDialog } from './ZoneDialog';
+import type { Zone } from '../../types/zone';
 
 interface ContextMenuState {
   x: number;
@@ -33,13 +34,22 @@ export function SpreadsheetGrid() {
   const selectionStart = useGridStore((s) => s.selectionStart);
   const selectionEnd = useGridStore((s) => s.selectionEnd);
   const addZone = useGridStore((s) => s.addZone);
+  const updateZone = useGridStore((s) => s.updateZone);
+  const deleteZone = useGridStore((s) => s.deleteZone);
+  const zones = useGridStore((s) => s.zones);
   const clearSelection = useGridStore((s) => s.clearSelection);
+  const activeZoneId = useGridStore((s) => s.activeZoneId);
+  const setActiveZone = useGridStore((s) => s.setActiveZone);
+  const startZoneResize = useGridStore((s) => s.startZoneResize);
+  const updateZoneResize = useGridStore((s) => s.updateZoneResize);
+  const endZoneResize = useGridStore((s) => s.endZoneResize);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
   const rwGridRef = useGridRef(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showZoneDialog, setShowZoneDialog] = useState(false);
+  const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const rowDragRef = useRef<{ rowIndex: number; startY: number; startHeight: number } | null>(null);
 
   const hasRangeSelection = selectionStart && selectionEnd && selectionStart !== selectionEnd;
@@ -63,6 +73,86 @@ export function SpreadsheetGrid() {
       });
     }
   }, [selectedCell, rwGridRef]);
+
+  // Listen for zone edit events from Cell badge clicks
+  useEffect(() => {
+    const handleEditZoneEvent = (e: Event) => {
+      const { zoneId } = (e as CustomEvent).detail;
+      const zone = useGridStore.getState().zones.find((z) => z.id === zoneId);
+      if (zone) setEditingZone(zone);
+    };
+    window.addEventListener('cellium:edit-zone', handleEditZoneEvent);
+    return () => window.removeEventListener('cellium:edit-zone', handleEditZoneEvent);
+  }, []);
+
+  // Listen for zone resize events from HandleDot mousedowns
+  useEffect(() => {
+    const handleResizeStart = (e: Event) => {
+      const { zoneId, handle } = (e as CustomEvent).detail;
+      startZoneResize(zoneId, handle);
+
+      let rafId: number | null = null;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = null;
+          const el = document.elementFromPoint(moveEvent.clientX, moveEvent.clientY);
+          if (!el) return;
+          const cellEl = (el as HTMLElement).closest<HTMLElement>('[data-testid^="cell-"]');
+          if (!cellEl) return;
+          const testId = cellEl.dataset.testid!;
+          const cellId = testId.replace('cell-input-', '').replace('cell-', '');
+          updateZoneResize(cellId);
+        });
+      };
+
+      const handleMouseUp = (mouseUpEvent: MouseEvent) => {
+        if (rafId) cancelAnimationFrame(rafId);
+        // Find final cell under cursor and pass to endZoneResize (single transaction)
+        let finalCellId: string | undefined;
+        const finalEl = document.elementFromPoint(mouseUpEvent.clientX, mouseUpEvent.clientY);
+        if (finalEl) {
+          const finalCellEl = (finalEl as HTMLElement).closest<HTMLElement>('[data-testid^="cell-"]');
+          if (finalCellEl) {
+            const tid = finalCellEl.dataset.testid!;
+            finalCellId = tid.replace('cell-input-', '').replace('cell-', '');
+          }
+        }
+        endZoneResize(finalCellId);
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'grabbing';
+      document.body.style.userSelect = 'none';
+    };
+
+    window.addEventListener('cellium:zone-resize-start', handleResizeStart);
+    return () => window.removeEventListener('cellium:zone-resize-start', handleResizeStart);
+  }, [startZoneResize, updateZoneResize, endZoneResize]);
+
+  // Click outside active zone → deactivate
+  const handleContainerClick = useCallback((e: React.MouseEvent) => {
+    if (!activeZoneId) return;
+
+    const target = e.target as HTMLElement;
+    const cellEl = target.closest<HTMLElement>('[data-testid^="cell-"]');
+    if (cellEl) {
+      const testId = cellEl.dataset.testid!;
+      const cellId = testId.replace('cell-input-', '').replace('cell-', '');
+      const activeZone = zones.find((z) => z.id === activeZoneId);
+      if (activeZone && isCellInRange(cellId, activeZone.startCell, activeZone.endCell)) {
+        return;
+      }
+    }
+
+    setActiveZone(null);
+  }, [activeZoneId, zones, setActiveZone]);
 
   const handleGridScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const { scrollLeft, scrollTop } = e.currentTarget;
@@ -152,6 +242,27 @@ export function SpreadsheetGrid() {
     [selectionStart, selectionEnd, addZone, clearSelection]
   );
 
+  const handleEditZone = useCallback(
+    (name: string, description: string, color: string) => {
+      if (!editingZone) return;
+      updateZone(editingZone.id, { name, description, color });
+      setEditingZone(null);
+    },
+    [editingZone, updateZone]
+  );
+
+  const handleDeleteEditingZone = useCallback(() => {
+    if (!editingZone) return;
+    deleteZone(editingZone.id);
+    setEditingZone(null);
+  }, [editingZone, deleteZone]);
+
+  // Find the zone that a cell belongs to (for context menu)
+  function findZoneForCell(row: number, col: number): Zone | undefined {
+    const cellId = coordsToCellId(row, col);
+    return zones.find((z) => isCellInRange(cellId, z.startCell, z.endCell));
+  }
+
   function buildMenuItems(targetRow: number | null, targetCol: number | null): ContextMenuItem[] {
     const items: ContextMenuItem[] = [];
 
@@ -196,6 +307,22 @@ export function SpreadsheetGrid() {
       return items;
     }
 
+    // Zone items (if the cell belongs to a zone)
+    if (targetRow !== null && targetCol !== null) {
+      const cellZone = findZoneForCell(targetRow, targetCol);
+      if (cellZone) {
+        items.push({
+          label: `Modifier la zone "${cellZone.name}"`,
+          action: () => setEditingZone(cellZone),
+        });
+        items.push({
+          label: `Supprimer la zone "${cellZone.name}"`,
+          action: () => deleteZone(cellZone.id),
+        });
+        items.push({ label: '', action: () => {}, separator: true });
+      }
+    }
+
     // Single cell / row / column items
     if (targetRow !== null) {
       items.push(
@@ -235,6 +362,7 @@ export function SpreadsheetGrid() {
       }}
       onContextMenu={handleContextMenu}
       onMouseUp={handleMouseUp}
+      onClick={handleContainerClick}
     >
       {/* Corner cell */}
       <div className="bg-gray-100 border border-gray-200 z-20" />
@@ -294,6 +422,16 @@ export function SpreadsheetGrid() {
         <ZoneDialog
           onConfirm={handleCreateZone}
           onCancel={() => setShowZoneDialog(false)}
+        />
+      )}
+
+      {/* Zone edit dialog */}
+      {editingZone && (
+        <ZoneDialog
+          zone={editingZone}
+          onConfirm={handleEditZone}
+          onDelete={handleDeleteEditingZone}
+          onCancel={() => setEditingZone(null)}
         />
       )}
     </div>

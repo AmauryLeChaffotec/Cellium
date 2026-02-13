@@ -4,7 +4,7 @@ import { cellIdToCoords, coordsToCellId } from './cellUtils';
  * Normalise un rectangle de sélection pour que start soit le coin supérieur-gauche
  * et end le coin inférieur-droit.
  */
-function normalizeRange(startCell: string, endCell: string) {
+export function normalizeRange(startCell: string, endCell: string) {
   const s = cellIdToCoords(startCell);
   const e = cellIdToCoords(endCell);
   return {

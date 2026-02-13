@@ -1,8 +1,58 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useGridStore } from '../../stores/gridStore';
+import type { ZoneResizeHandle } from '../../stores/gridStore';
 import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
 import { evaluateFormula } from '../../utils/formulaEvaluator';
 import { isCellInRange } from '../../utils/rangeUtils';
+
+// ── HandleDot: resize handle rendered at zone edges ──────────
+
+type HandlePosition =
+  | 'top-left' | 'top-center' | 'top-right'
+  | 'left-center' | 'right-center'
+  | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+const HANDLE_POSITION_STYLES: Record<HandlePosition, React.CSSProperties> = {
+  'top-left':      { top: -4, left: -4, cursor: 'nwse-resize' },
+  'top-center':    { top: -4, left: '50%', marginLeft: -4, cursor: 'ns-resize' },
+  'top-right':     { top: -4, right: -4, cursor: 'nesw-resize' },
+  'left-center':   { top: '50%', left: -4, marginTop: -4, cursor: 'ew-resize' },
+  'right-center':  { top: '50%', right: -4, marginTop: -4, cursor: 'ew-resize' },
+  'bottom-left':   { bottom: -4, left: -4, cursor: 'nesw-resize' },
+  'bottom-center': { bottom: -4, left: '50%', marginLeft: -4, cursor: 'ns-resize' },
+  'bottom-right':  { bottom: -4, right: -4, cursor: 'nwse-resize' },
+};
+
+function HandleDot({ position, handle, zoneId, color }: {
+  position: HandlePosition;
+  handle: ZoneResizeHandle;
+  zoneId: string;
+  color: string;
+}) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        width: 8,
+        height: 8,
+        borderRadius: '50%',
+        backgroundColor: color,
+        border: '1px solid white',
+        zIndex: 30,
+        ...HANDLE_POSITION_STYLES[position],
+      }}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        window.dispatchEvent(
+          new CustomEvent('cellium:zone-resize-start', {
+            detail: { zoneId, handle },
+          })
+        );
+      }}
+    />
+  );
+}
 
 interface CellProps {
   cellId: string;
@@ -32,6 +82,9 @@ export function Cell({ cellId }: CellProps) {
   const selectionStart = useGridStore((s) => s.selectionStart);
   const selectionEnd = useGridStore((s) => s.selectionEnd);
   const zones = useGridStore((s) => s.zones);
+  const activeZoneId = useGridStore((s) => s.activeZoneId);
+  const setActiveZone = useGridStore((s) => s.setActiveZone);
+  const zoneResizing = useGridStore((s) => s.zoneResizing);
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState('');
@@ -48,6 +101,7 @@ export function Cell({ cellId }: CellProps) {
     for (const zone of zones) {
       if (isCellInRange(cellId, zone.startCell, zone.endCell)) {
         return {
+          id: zone.id,
           color: zone.color,
           name: zone.name,
           description: zone.description,
@@ -59,6 +113,44 @@ export function Cell({ cellId }: CellProps) {
   }, [cellId, zones]);
 
   const zoneColor = zoneInfo?.color ?? null;
+
+  // Compute edge info for active zone highlight + resize handles
+  const activeZoneEdges = useMemo(() => {
+    if (!activeZoneId || !zoneInfo || zoneInfo.id !== activeZoneId) return null;
+
+    const activeZone = zones.find((z) => z.id === activeZoneId);
+    if (!activeZone) return null;
+
+    const { row, col } = cellIdToCoords(cellId);
+    const s = cellIdToCoords(activeZone.startCell);
+    const e = cellIdToCoords(activeZone.endCell);
+    const minRow = Math.min(s.row, e.row);
+    const maxRow = Math.max(s.row, e.row);
+    const minCol = Math.min(s.col, e.col);
+    const maxCol = Math.max(s.col, e.col);
+
+    const isTop = row === minRow;
+    const isBottom = row === maxRow;
+    const isLeft = col === minCol;
+    const isRight = col === maxCol;
+
+    if (!isTop && !isBottom && !isLeft && !isRight) return null;
+
+    const midRow = Math.floor((minRow + maxRow) / 2);
+    const midCol = Math.floor((minCol + maxCol) / 2);
+
+    return {
+      isTop, isBottom, isLeft, isRight,
+      handleTopLeft: isTop && isLeft,
+      handleTopRight: isTop && isRight,
+      handleBottomLeft: isBottom && isLeft,
+      handleBottomRight: isBottom && isRight,
+      handleTop: isTop && col === midCol && !isLeft && !isRight,
+      handleBottom: isBottom && col === midCol && !isLeft && !isRight,
+      handleLeft: isLeft && row === midRow && !isTop && !isBottom,
+      handleRight: isRight && row === midRow && !isTop && !isBottom,
+    };
+  }, [cellId, activeZoneId, zoneInfo, zones]);
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -114,6 +206,7 @@ export function Cell({ cellId }: CellProps) {
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
+    if (zoneResizing) return;
     startSelection(cellId);
   };
 
@@ -156,16 +249,28 @@ export function Cell({ cellId }: CellProps) {
     bgStyle = { backgroundColor: 'rgba(59, 130, 246, 0.15)' };
   }
 
+  // Build border style for active zone edges
+  const borderStyle: React.CSSProperties = {};
+  if (activeZoneEdges && zoneInfo) {
+    const c = zoneInfo.color;
+    if (activeZoneEdges.isTop)    { borderStyle.borderTopWidth = 2; borderStyle.borderTopStyle = 'solid'; borderStyle.borderTopColor = c; }
+    if (activeZoneEdges.isBottom) { borderStyle.borderBottomWidth = 2; borderStyle.borderBottomStyle = 'solid'; borderStyle.borderBottomColor = c; }
+    if (activeZoneEdges.isLeft)   { borderStyle.borderLeftWidth = 2; borderStyle.borderLeftStyle = 'solid'; borderStyle.borderLeftColor = c; }
+    if (activeZoneEdges.isRight)  { borderStyle.borderRightWidth = 2; borderStyle.borderRightStyle = 'solid'; borderStyle.borderRightColor = c; }
+  }
+
   const tooltip = zoneInfo
     ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
     : undefined;
 
   return (
     <div
-      className={`w-full h-full px-1 py-1 text-sm cursor-default break-words overflow-hidden select-none ${
+      className={`relative w-full h-full px-1 py-1 text-sm cursor-default break-words select-none ${
+        activeZoneEdges ? '' : 'overflow-hidden'
+      } ${
         isSelected ? 'ring-2 ring-blue-500 ring-inset border border-transparent' : 'border border-gray-200'
       }`}
-      style={bgStyle}
+      style={{ ...bgStyle, ...borderStyle }}
       title={tooltip}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
@@ -174,8 +279,17 @@ export function Cell({ cellId }: CellProps) {
     >
       {zoneInfo?.isStartCell && (
         <span
-          className="inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded mb-0.5 truncate max-w-full"
+          className="inline-block text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded mb-0.5 truncate max-w-full cursor-pointer hover:opacity-80"
           style={{ backgroundColor: zoneInfo.color, color: '#fff' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new CustomEvent('cellium:edit-zone', { detail: { zoneId: zoneInfo.id } }));
+          }}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveZone(activeZoneId === zoneInfo.id ? null : zoneInfo.id);
+          }}
         >
           {zoneInfo.name}
         </span>
@@ -187,6 +301,18 @@ export function Cell({ cellId }: CellProps) {
         </div>
       ) : (
         displayValue
+      )}
+      {activeZoneEdges && zoneInfo && (
+        <>
+          {activeZoneEdges.handleTopLeft && <HandleDot position="top-left" handle="top-left" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleTop && <HandleDot position="top-center" handle="top" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleTopRight && <HandleDot position="top-right" handle="top-right" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleLeft && <HandleDot position="left-center" handle="left" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleRight && <HandleDot position="right-center" handle="right" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleBottomLeft && <HandleDot position="bottom-left" handle="bottom-left" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleBottom && <HandleDot position="bottom-center" handle="bottom" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+          {activeZoneEdges.handleBottomRight && <HandleDot position="bottom-right" handle="bottom-right" zoneId={zoneInfo.id} color={zoneInfo.color} />}
+        </>
       )}
     </div>
   );

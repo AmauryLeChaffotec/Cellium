@@ -16,6 +16,18 @@ export function useKeyboardNav(containerRef: React.RefObject<HTMLElement | null>
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (editingCell) return;
+
+      // Escape clears active zone highlight
+      if (e.key === 'Escape') {
+        const activeZoneId = useGridStore.getState().activeZoneId;
+        if (activeZoneId) {
+          useGridStore.getState().setActiveZone(null);
+          e.preventDefault();
+          return;
+        }
+        return;
+      }
+
       if (!selectedCell) return;
 
       const { row, col } = cellIdToCoords(selectedCell);
