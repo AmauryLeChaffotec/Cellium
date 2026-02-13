@@ -2,12 +2,17 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Grid, CellFormat } from '../types/cell';
 import type { GridPersistData } from '../utils/persistence';
-import { cellIdToCoords, coordsToCellId } from '../utils/cellUtils';
+import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
+
+function defaultHeaders(count: number): string[] {
+  return Array.from({ length: count }, (_, i) => columnIndexToLetter(i));
+}
 
 interface GridState {
   cells: Grid;
   rowCount: number;
   colCount: number;
+  headers: string[];
   editingCell: string | null;
   selectedCell: string | null;
 }
@@ -34,6 +39,7 @@ export const useGridStore = create<GridState & GridActions>()(
     cells: {},
     rowCount: 100,
     colCount: 26,
+    headers: defaultHeaders(26),
     editingCell: null,
     selectedCell: null,
 
@@ -42,6 +48,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.cells = {};
         state.rowCount = rows;
         state.colCount = cols;
+        state.headers = defaultHeaders(cols);
       }),
 
     setCell: (id, value, options) =>
@@ -155,6 +162,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
         state.cells = newCells;
         state.colCount += 1;
+        state.headers.splice(afterCol + 1, 0, columnIndexToLetter(state.colCount - 1));
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -187,6 +195,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
         state.cells = newCells;
         state.colCount -= 1;
+        state.headers.splice(targetCol, 1);
 
         if (state.selectedCell) {
           const { row, col } = cellIdToCoords(state.selectedCell);
@@ -211,6 +220,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.cells = data.cells;
         state.rowCount = data.rowCount;
         state.colCount = data.colCount;
+        state.headers = data.headers ?? defaultHeaders(data.colCount);
         state.editingCell = null;
         state.selectedCell = null;
       }),

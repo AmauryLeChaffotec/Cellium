@@ -4,6 +4,7 @@ export interface GridPersistData {
   cells: Grid;
   rowCount: number;
   colCount: number;
+  headers: string[];
 }
 
 export async function saveGridData(data: GridPersistData): Promise<void> {

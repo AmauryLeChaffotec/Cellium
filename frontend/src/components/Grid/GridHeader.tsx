@@ -1,19 +1,17 @@
-import { columnIndexToLetter } from '../../utils/cellUtils';
+import { useGridStore } from '../../stores/gridStore';
 
-interface GridHeaderProps {
-  colCount: number;
-}
+export function GridHeader() {
+  const headers = useGridStore((s) => s.headers);
 
-export function GridHeader({ colCount }: GridHeaderProps) {
   return (
     <div className="flex">
-      {Array.from({ length: colCount }, (_, i) => (
+      {headers.map((name, i) => (
         <div
           key={i}
           data-col-header={i}
           className="w-[100px] shrink-0 h-8 bg-gray-100 font-medium text-center text-sm border border-gray-200 leading-8"
         >
-          {columnIndexToLetter(i)}
+          {name}
         </div>
       ))}
     </div>

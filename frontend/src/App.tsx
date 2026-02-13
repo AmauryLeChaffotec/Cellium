@@ -11,7 +11,7 @@ function App() {
   // Activate keyboard shortcuts (Escape, Ctrl+Enter)
   useKeyboardShortcuts();
 
-  // Load version snapshots from IndexedDB on app mount (Story 3.1)
+  // Load version snapshots on app mount
   useEffect(() => {
     useVersionStore.getState().loadSnapshots();
   }, []);

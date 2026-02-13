@@ -131,7 +131,7 @@ export function SpreadsheetGrid() {
 
       {/* Column headers — scroll horizontal synced */}
       <div ref={headerRef} className="overflow-hidden z-10">
-        <GridHeader colCount={colCount} />
+        <GridHeader />
       </div>
 
       {/* Row numbers — scroll vertical synced */}

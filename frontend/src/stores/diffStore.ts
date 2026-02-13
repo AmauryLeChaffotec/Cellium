@@ -59,9 +59,9 @@ export const useDiffStore = create<DiffStore>()(
         // Apply all operations to gridStore
         applyOperations(pendingOperations);
 
-        // ✅ CREATE SNAPSHOT AFTER SUCCESSFUL APPLICATION (Story 3.1)
+        // Create snapshot after successful application
         if (description) {
-          useVersionStore.getState().createSnapshot(pendingOperations, description);
+          useVersionStore.getState().createSnapshot(description);
         }
 
         // Clear pending and preview after successful application
