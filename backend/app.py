@@ -4,6 +4,9 @@ import os
 import re
 import uuid
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, Response, jsonify, request, stream_with_context
 from flask_cors import CORS
 from anthropic import Anthropic
