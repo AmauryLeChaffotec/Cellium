@@ -15,7 +15,10 @@ export function VersionItem({ snapshot }: VersionItemProps) {
       <div className="flex items-center justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-gray-800">{snapshot.name}</p>
-          <p className="text-xs text-gray-500 mt-1">{formattedDate}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {snapshot.author && <span className="font-medium">{snapshot.author} — </span>}
+            {formattedDate}
+          </p>
         </div>
         <button
           onClick={() => restoreFromSnapshot(snapshot.id)}

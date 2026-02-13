@@ -61,7 +61,7 @@ export const useDiffStore = create<DiffStore>()(
 
         // Create snapshot after successful application
         if (description) {
-          useVersionStore.getState().createSnapshot(description);
+          useVersionStore.getState().createSnapshot(description, 'Agent');
         }
 
         // Clear pending and preview after successful application

@@ -11,7 +11,7 @@ interface VersionStore {
   isLoading: boolean;
   isRestoring: boolean;
 
-  createSnapshot: (name: string) => void;
+  createSnapshot: (name: string, author: string) => void;
   loadSnapshots: () => Promise<void>;
   restoreFromSnapshot: (snapshotId: string) => void;
   exportFile: () => void;
@@ -24,13 +24,14 @@ export const useVersionStore = create<VersionStore>()(
     isLoading: false,
     isRestoring: false,
 
-    createSnapshot: (name) => {
+    createSnapshot: (name, author) => {
       const { cells, rowCount, colCount, headers } = useGridStore.getState();
 
       const snapshot: Snapshot = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         name,
+        author,
         gridData: { cells, rowCount, colCount, headers },
       };
 

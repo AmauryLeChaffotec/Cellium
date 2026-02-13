@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useVersionStore } from '../../stores/versionStore';
 import { VersionItem } from './VersionItem';
+import { getAuthor, setAuthor } from '../../utils/session';
 
 interface VersionPanelProps {
   isOpen: boolean;
@@ -10,14 +11,21 @@ interface VersionPanelProps {
 export function VersionPanel({ isOpen, onClose }: VersionPanelProps) {
   const { snapshots, isLoading, createSnapshot, exportFile, importFile } = useVersionStore();
   const [name, setName] = useState('');
+  const [author, setAuthorValue] = useState(getAuthor);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
+  const handleAuthorChange = (value: string) => {
+    setAuthorValue(value);
+    setAuthor(value);
+  };
+
   const handleSave = () => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    createSnapshot(trimmed);
+    const trimmedName = name.trim();
+    const trimmedAuthor = author.trim();
+    if (!trimmedName || !trimmedAuthor) return;
+    createSnapshot(trimmedName, trimmedAuthor);
     setName('');
   };
 
@@ -43,7 +51,14 @@ export function VersionPanel({ isOpen, onClose }: VersionPanelProps) {
       </div>
 
       {/* Save new version */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-gray-200 space-y-2">
+        <input
+          type="text"
+          value={author}
+          onChange={(e) => handleAuthorChange(e.target.value)}
+          placeholder="Prénom Nom"
+          className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
         <div className="flex gap-2">
           <input
             type="text"
@@ -55,7 +70,7 @@ export function VersionPanel({ isOpen, onClose }: VersionPanelProps) {
           />
           <button
             onClick={handleSave}
-            disabled={!name.trim()}
+            disabled={!name.trim() || !author.trim()}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             Sauvegarder
