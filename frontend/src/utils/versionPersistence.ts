@@ -9,6 +9,14 @@ export async function saveSnapshotToDB(snapshot: Snapshot): Promise<void> {
   });
 }
 
+export async function saveAllSnapshotsToDB(snapshots: Snapshot[]): Promise<void> {
+  await apiFetch('/api/data', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ snapshots }),
+  });
+}
+
 export async function deleteSnapshotFromDB(snapshotId: string): Promise<void> {
   await apiFetch(`/api/data/snapshot/${snapshotId}`, { method: 'DELETE' });
 }

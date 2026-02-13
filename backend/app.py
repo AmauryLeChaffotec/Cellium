@@ -146,6 +146,9 @@ def save_data():
     if "grid" in body:
         current["grid"] = body["grid"]
 
+    if "snapshots" in body:
+        current["snapshots"] = body["snapshots"]
+
     if "snapshot" in body:
         current["snapshots"].append(body["snapshot"])
 

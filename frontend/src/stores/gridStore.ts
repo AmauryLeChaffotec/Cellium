@@ -5,6 +5,7 @@ import type { Zone } from '../types/zone';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
 import { normalizeRange } from '../utils/rangeUtils';
+import { evaluateFormula } from '../utils/formulaEvaluator';
 
 export type ZoneResizeHandle =
   | 'top-left' | 'top' | 'top-right'
@@ -74,8 +75,18 @@ function applyFormulaShift(cells: Grid, shiftFn: (f: string | undefined) => stri
       const updated = shiftFn(cell.formula);
       if (updated && updated !== cell.formula) {
         cell.formula = updated;
-        cell.value = updated;
       }
+    }
+  }
+  // Re-evaluate all formulas so `value` holds the real result
+  reEvaluateFormulas(cells);
+}
+
+/** Re-evaluate every formula cell so its `value` holds the computed result. */
+function reEvaluateFormulas(cells: Grid) {
+  for (const cell of Object.values(cells)) {
+    if (cell.formula) {
+      cell.value = evaluateFormula(cell.formula, cells);
     }
   }
 }
@@ -186,6 +197,8 @@ export const useGridStore = create<GridState & GridActions>()(
             ...(options?.name && { name: options.name }),
           };
         }
+        // Re-evaluate other formula cells that may depend on this cell
+        reEvaluateFormulas(state.cells);
       }),
 
     startEditing: (id) =>
@@ -321,16 +334,12 @@ export const useGridStore = create<GridState & GridActions>()(
 
     endZoneResize: (finalCellId) =>
       set((state) => {
-        if (!state.zoneResizing) {
-          console.log('[endZoneResize] No zoneResizing state — aborting');
-          return;
-        }
+        if (!state.zoneResizing) return;
 
         const { originalStart, originalEnd, zoneId, handle } = state.zoneResizing;
         const zone = state.zones.find((z) => z.id === zoneId);
 
         if (!zone) {
-          console.log('[endZoneResize] Zone not found:', zoneId);
           state.zoneResizing = null;
           return;
         }
@@ -359,9 +368,6 @@ export const useGridStore = create<GridState & GridActions>()(
         const oldB = normalizeRange(originalStart, originalEnd);
         const newB = normalizeRange(zone.startCell, zone.endCell);
 
-        console.log('[endZoneResize] old zone:', `${coordsToCellId(oldB.minRow, oldB.minCol)}:${coordsToCellId(oldB.maxRow, oldB.maxCol)}`);
-        console.log('[endZoneResize] new zone:', `${coordsToCellId(newB.minRow, newB.minCol)}:${coordsToCellId(newB.maxRow, newB.maxCol)}`);
-
         const changed =
           oldB.minRow !== newB.minRow ||
           oldB.maxRow !== newB.maxRow ||
@@ -369,15 +375,9 @@ export const useGridStore = create<GridState & GridActions>()(
           oldB.maxCol !== newB.maxCol;
 
         if (changed) {
-          // Count cells with formulas for debugging
-          const formulaCells = Object.keys(state.cells).filter((k) => state.cells[k].formula);
-          console.log('[endZoneResize] Cells with formulas:', formulaCells.length, formulaCells);
-
           for (const key of Object.keys(state.cells)) {
             const cell = state.cells[key];
             if (!cell.formula) continue;
-
-            console.log(`[endZoneResize] Checking ${key}: formula="${cell.formula}"`);
 
             const updated = cell.formula.replace(
               /([A-Z])(\d+):([A-Z])(\d+)/g,
@@ -394,7 +394,6 @@ export const useGridStore = create<GridState & GridActions>()(
 
                 // Range must be fully within old zone bounds
                 if (minR < oldB.minRow || maxR > oldB.maxRow || minC < oldB.minCol || maxC > oldB.maxCol) {
-                  console.log(`[endZoneResize]   Range ${match} NOT within old zone — skipping`);
                   return match;
                 }
 
@@ -411,7 +410,6 @@ export const useGridStore = create<GridState & GridActions>()(
                 }
 
                 if (newMinR === minR && newMaxR === maxR && newMinC === minC && newMaxC === maxC) {
-                  console.log(`[endZoneResize]   Range ${match} — edges didn't change`);
                   return match;
                 }
 
@@ -420,20 +418,16 @@ export const useGridStore = create<GridState & GridActions>()(
                 const startC = c1 <= c2 ? newMinC : newMaxC;
                 const endC = c1 <= c2 ? newMaxC : newMinC;
 
-                const result = `${String.fromCharCode(65 + startC)}${startR}:${String.fromCharCode(65 + endC)}${endR}`;
-                console.log(`[endZoneResize]   Range ${match} → ${result}`);
-                return result;
+                return `${String.fromCharCode(65 + startC)}${startR}:${String.fromCharCode(65 + endC)}${endR}`;
               }
             );
 
             if (updated !== cell.formula) {
-              console.log(`[endZoneResize] Updated ${key}: "${cell.formula}" → "${updated}"`);
               cell.formula = updated;
-              cell.value = updated;
             }
           }
-        } else {
-          console.log('[endZoneResize] Zone bounds did not change — no formula update');
+          // Re-evaluate all formulas so `value` holds the real result
+          reEvaluateFormulas(state.cells);
         }
 
         state.zoneResizing = null;
@@ -677,6 +671,8 @@ export const useGridStore = create<GridState & GridActions>()(
         state.selectionEnd = null;
         state.activeZoneId = null;
         state.zoneResizing = null;
+        // Evaluate all formulas so `value` holds the real result
+        reEvaluateFormulas(state.cells);
       }),
   }))
 );

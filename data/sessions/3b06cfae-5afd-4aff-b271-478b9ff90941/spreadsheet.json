@@ -5,38 +5,6 @@
         "id": "A1",
         "value": "Poulet rôti"
       },
-      "A2": {
-        "id": "A2",
-        "value": "Saumon grillé"
-      },
-      "A3": {
-        "id": "A3",
-        "value": "Salade César"
-      },
-      "A4": {
-        "id": "A4",
-        "value": "Steak frites"
-      },
-      "A5": {
-        "id": "A5",
-        "value": "Pizza Margherita"
-      },
-      "A6": {
-        "id": "A6",
-        "value": "Pâtes Carbonara"
-      },
-      "A7": {
-        "id": "A7",
-        "value": "Burger classique"
-      },
-      "A8": {
-        "id": "A8",
-        "value": "Soupe à l'oignon"
-      },
-      "A9": {
-        "id": "A9",
-        "value": "Tiramisu"
-      },
       "A10": {
         "id": "A10",
         "value": "Crème brûlée"
@@ -76,6 +44,10 @@
       "A19": {
         "id": "A19",
         "value": "Croque-monsieur"
+      },
+      "A2": {
+        "id": "A2",
+        "value": "Saumon grillé"
       },
       "A20": {
         "id": "A20",
@@ -117,45 +89,41 @@
         "id": "A29",
         "value": "Profiteroles"
       },
+      "A3": {
+        "id": "A3",
+        "value": "Salade César"
+      },
       "A30": {
         "id": "A30",
         "value": "Bouillabaisse"
       },
+      "A4": {
+        "id": "A4",
+        "value": "Steak frites"
+      },
+      "A5": {
+        "id": "A5",
+        "value": "Pizza Margherita"
+      },
+      "A6": {
+        "id": "A6",
+        "value": "Pâtes Carbonara"
+      },
+      "A7": {
+        "id": "A7",
+        "value": "Burger classique"
+      },
+      "A8": {
+        "id": "A8",
+        "value": "Soupe à l'oignon"
+      },
+      "A9": {
+        "id": "A9",
+        "value": "Tiramisu"
+      },
       "B1": {
         "id": "B1",
         "value": "12.50"
-      },
-      "B2": {
-        "id": "B2",
-        "value": "18.90"
-      },
-      "B3": {
-        "id": "B3",
-        "value": "9.50"
-      },
-      "B4": {
-        "id": "B4",
-        "value": "22.00"
-      },
-      "B5": {
-        "id": "B5",
-        "value": "11.00"
-      },
-      "B6": {
-        "id": "B6",
-        "value": "13.50"
-      },
-      "B7": {
-        "id": "B7",
-        "value": "14.90"
-      },
-      "B8": {
-        "id": "B8",
-        "value": "7.50"
-      },
-      "B9": {
-        "id": "B9",
-        "value": "8.00"
       },
       "B10": {
         "id": "B10",
@@ -197,6 +165,10 @@
         "id": "B19",
         "value": "9.00"
       },
+      "B2": {
+        "id": "B2",
+        "value": "18.90"
+      },
       "B20": {
         "id": "B20",
         "value": "7.50"
@@ -237,21 +209,49 @@
         "id": "B29",
         "value": "8.90"
       },
+      "B3": {
+        "id": "B3",
+        "value": "9.50"
+      },
       "B30": {
         "id": "B30",
         "value": "24.00"
       },
       "B31": {
-        "id": "B31",
         "formula": "=SUM(B1:B30)",
-        "value": "=SUM(B1:B30)",
-        "name": "Total prix"
+        "id": "B31",
+        "name": "Total prix",
+        "value": 425.5
       },
       "B32": {
-        "id": "B32",
         "formula": "=COUNT(B1:B30)",
-        "value": "=COUNT(B1:B30)",
-        "name": "Nb produits"
+        "id": "B32",
+        "name": "Nb produits",
+        "value": 30
+      },
+      "B4": {
+        "id": "B4",
+        "value": "22.00"
+      },
+      "B5": {
+        "id": "B5",
+        "value": "11.00"
+      },
+      "B6": {
+        "id": "B6",
+        "value": "13.50"
+      },
+      "B7": {
+        "id": "B7",
+        "value": "14.90"
+      },
+      "B8": {
+        "id": "B8",
+        "value": "7.50"
+      },
+      "B9": {
+        "id": "B9",
+        "value": "8.00"
       }
     },
     "rowCount": 101,
@@ -343,8 +343,8 @@
       32,
       32,
       32,
-      32,
-      32,
+      75,
+      104,
       32,
       32,
       32,
@@ -428,9 +428,6 @@
   },
   "snapshots": [
     {
-      "id": "af601b3d-bc74-43f6-80d7-3f11892e770b",
-      "timestamp": "2026-02-13T11:11:59.796Z",
-      "name": "test1",
       "author": "amaury",
       "gridData": {
         "cells": {
@@ -515,36 +512,7 @@
             "value": "8.00"
           }
         },
-        "rowCount": 100,
         "colCount": 26,
-        "headers": [
-          "produit",
-          "prix",
-          "C",
-          "D",
-          "E",
-          "F",
-          "G",
-          "H",
-          "I",
-          "J",
-          "K",
-          "L",
-          "M",
-          "N",
-          "O",
-          "P",
-          "Q",
-          "R",
-          "S",
-          "T",
-          "U",
-          "V",
-          "W",
-          "X",
-          "Y",
-          "Z"
-        ],
         "colWidths": [
           100,
           100,
@@ -573,6 +541,35 @@
           100,
           100
         ],
+        "headers": [
+          "produit",
+          "prix",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z"
+        ],
+        "rowCount": 100,
         "rowHeights": [
           32,
           32,
@@ -677,20 +674,20 @@
         ],
         "zones": [
           {
+            "color": "#4CAF50",
+            "description": "",
+            "endCell": "B10",
             "id": "5d1667ad-532e-4bb5-8439-265893769b68",
             "name": "produit",
-            "description": "",
-            "color": "#4CAF50",
-            "startCell": "A1",
-            "endCell": "B10"
+            "startCell": "A1"
           }
         ]
-      }
+      },
+      "id": "af601b3d-bc74-43f6-80d7-3f11892e770b",
+      "name": "test1",
+      "timestamp": "2026-02-13T11:11:59.796Z"
     },
     {
-      "id": "78c348e4-4210-4552-9f18-899c174f9bb3",
-      "timestamp": "2026-02-13T11:20:29.876Z",
-      "name": "test2",
       "author": "amaury",
       "gridData": {
         "cells": {
@@ -746,13 +743,13 @@
             "formula": "=SUM(B1:B10)",
             "id": "B11",
             "name": "Total prix",
-            "value": "=SUM(B1:B10)"
+            "value": 125.70000000000002
           },
           "B12": {
             "formula": "=COUNT(B1:B10)",
             "id": "B12",
             "name": "Nb produits",
-            "value": "=COUNT(B1:B10)"
+            "value": 10
           },
           "B2": {
             "id": "B2",
@@ -787,36 +784,7 @@
             "value": "8.00"
           }
         },
-        "rowCount": 100,
         "colCount": 26,
-        "headers": [
-          "produit",
-          "prix",
-          "C",
-          "D",
-          "E",
-          "F",
-          "G",
-          "H",
-          "I",
-          "J",
-          "K",
-          "L",
-          "M",
-          "N",
-          "O",
-          "P",
-          "Q",
-          "R",
-          "S",
-          "T",
-          "U",
-          "V",
-          "W",
-          "X",
-          "Y",
-          "Z"
-        ],
         "colWidths": [
           100,
           280,
@@ -845,6 +813,35 @@
           100,
           100
         ],
+        "headers": [
+          "produit",
+          "prix",
+          "C",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z"
+        ],
+        "rowCount": 100,
         "rowHeights": [
           71,
           32,
@@ -957,12 +954,12 @@
             "startCell": "A1"
           }
         ]
-      }
+      },
+      "id": "78c348e4-4210-4552-9f18-899c174f9bb3",
+      "name": "test2",
+      "timestamp": "2026-02-13T11:20:29.876Z"
     },
     {
-      "id": "f55274ed-1110-418d-ae18-8869fef1c977",
-      "timestamp": "2026-02-13T12:17:00.071Z",
-      "name": "test",
       "author": "amaury",
       "gridData": {
         "cells": {
@@ -1018,13 +1015,13 @@
             "formula": "=SUM(B1:B10)",
             "id": "B12",
             "name": "Total prix",
-            "value": "=SUM(B1:B10)"
+            "value": 125.70000000000002
           },
           "B13": {
             "formula": "=COUNT(B1:B10)",
             "id": "B13",
             "name": "Nb produits",
-            "value": "=COUNT(B1:B10)"
+            "value": 10
           },
           "B2": {
             "id": "B2",
@@ -1059,36 +1056,7 @@
             "value": "8.00"
           }
         },
-        "rowCount": 101,
         "colCount": 26,
-        "headers": [
-          "produit",
-          "prix",
-          "description",
-          "D",
-          "E",
-          "F",
-          "G",
-          "H",
-          "I",
-          "J",
-          "K",
-          "L",
-          "M",
-          "N",
-          "O",
-          "P",
-          "Q",
-          "R",
-          "S",
-          "T",
-          "U",
-          "V",
-          "W",
-          "X",
-          "Y",
-          "Z"
-        ],
         "colWidths": [
           100,
           280,
@@ -1117,6 +1085,35 @@
           100,
           100
         ],
+        "headers": [
+          "produit",
+          "prix",
+          "description",
+          "D",
+          "E",
+          "F",
+          "G",
+          "H",
+          "I",
+          "J",
+          "K",
+          "L",
+          "M",
+          "N",
+          "O",
+          "P",
+          "Q",
+          "R",
+          "S",
+          "T",
+          "U",
+          "V",
+          "W",
+          "X",
+          "Y",
+          "Z"
+        ],
+        "rowCount": 101,
         "rowHeights": [
           71,
           32,
@@ -1230,7 +1227,10 @@
             "startCell": "A1"
           }
         ]
-      }
+      },
+      "id": "f55274ed-1110-418d-ae18-8869fef1c977",
+      "name": "test",
+      "timestamp": "2026-02-13T12:17:00.071Z"
     }
   ]
 }

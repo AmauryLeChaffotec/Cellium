@@ -162,7 +162,9 @@ export function Cell({ cellId }: CellProps) {
 
   const handleSave = () => {
     if (inputValue.startsWith('=')) {
-      setCell(cellId, inputValue, { formula: inputValue });
+      const currentCells = useGridStore.getState().cells;
+      const evaluated = evaluateFormula(inputValue, currentCells);
+      setCell(cellId, evaluated, { formula: inputValue });
     } else {
       const parsed = parseValue(inputValue);
       setCell(cellId, parsed === '' ? null : parsed);

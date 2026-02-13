@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useGridStore } from '../stores/gridStore';
 import { saveGridData, loadGridData, getLastModified } from '../utils/persistence';
+import { evaluateFormula } from '../utils/formulaEvaluator';
+import type { Grid } from '../types/cell';
 
 const SAVE_INTERVAL_MS = 5_000;
 const POLL_INTERVAL_MS = 2_000;
@@ -37,7 +39,16 @@ export function useAutoSave() {
       if (dirtyRef.current && !savingRef.current) {
         savingRef.current = true;
         const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
-        await saveGridData({ cells, rowCount, colCount, headers, colWidths, rowHeights, zones });
+        // Ensure all formula cells have their evaluated value before saving
+        const cellsCopy: Grid = {};
+        for (const [id, cell] of Object.entries(cells)) {
+          if (cell.formula) {
+            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+          } else {
+            cellsCopy[id] = cell;
+          }
+        }
+        await saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones });
         dirtyRef.current = false;
         // Update lastmod after our own save so polling doesn't trigger a reload
         const t = await getLastModified();
