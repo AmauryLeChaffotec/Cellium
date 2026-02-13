@@ -4,17 +4,30 @@ import { DiffOverlay, ActionBar } from './components/Diff';
 import { VersionPanel } from './components/Version';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useVersionStore } from './stores/versionStore';
+import { initSession } from './utils/session';
 
 function App() {
   const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
+  const [sessionReady, setSessionReady] = useState(false);
 
   // Activate keyboard shortcuts (Escape, Ctrl+Enter)
   useKeyboardShortcuts();
 
-  // Load version snapshots on app mount
+  // Initialize session before loading anything
   useEffect(() => {
-    useVersionStore.getState().loadSnapshots();
+    initSession().then(() => {
+      setSessionReady(true);
+      useVersionStore.getState().loadSnapshots();
+    });
   }, []);
+
+  if (!sessionReady) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-gray-500">Chargement...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">

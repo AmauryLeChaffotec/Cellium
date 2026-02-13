@@ -1,7 +1,8 @@
 import type { Snapshot } from '../types/version';
+import { apiFetch } from './api';
 
 export async function saveSnapshotToDB(snapshot: Snapshot): Promise<void> {
-  await fetch('/api/data', {
+  await apiFetch('/api/data', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ snapshot }),
@@ -10,7 +11,7 @@ export async function saveSnapshotToDB(snapshot: Snapshot): Promise<void> {
 
 export async function loadSnapshotsFromDB(): Promise<Snapshot[]> {
   try {
-    const res = await fetch('/api/data');
+    const res = await apiFetch('/api/data');
     if (!res.ok) return [];
     const data = await res.json();
     const snapshots: Snapshot[] = data.snapshots ?? [];
