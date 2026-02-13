@@ -9,6 +9,7 @@ export interface Cell {
   value: string | number | null;
   formula?: string;
   format?: CellFormat;
+  name?: string;
 }
 
 export type Grid = Record<string, Cell>;

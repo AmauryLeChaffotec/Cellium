@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Grid, CellFormat } from '../types/cell';
+import type { Zone } from '../types/zone';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
 
@@ -26,8 +27,12 @@ interface GridState {
   headers: string[];
   colWidths: number[];
   rowHeights: number[];
+  zones: Zone[];
   editingCell: string | null;
   selectedCell: string | null;
+  selectionStart: string | null;
+  selectionEnd: string | null;
+  isDragging: boolean;
 }
 
 interface GridActions {
@@ -35,11 +40,17 @@ interface GridActions {
   setCell: (
     id: string,
     value: string | number | null,
-    options?: { formula?: string; format?: CellFormat }
+    options?: { formula?: string; format?: CellFormat; name?: string }
   ) => void;
   startEditing: (id: string) => void;
   stopEditing: () => void;
   selectCell: (id: string | null) => void;
+  startSelection: (cellId: string) => void;
+  extendSelection: (cellId: string) => void;
+  endSelection: () => void;
+  clearSelection: () => void;
+  addZone: (zone: Zone) => void;
+  deleteZone: (zoneId: string) => void;
   insertRow: (afterRow: number) => void;
   deleteRow: (row: number) => void;
   insertColumn: (afterCol: number) => void;
@@ -58,8 +69,12 @@ export const useGridStore = create<GridState & GridActions>()(
     headers: defaultHeaders(26),
     colWidths: defaultColWidths(26),
     rowHeights: defaultRowHeights(100),
+    zones: [],
     editingCell: null,
     selectedCell: null,
+    selectionStart: null,
+    selectionEnd: null,
+    isDragging: false,
 
     initializeGrid: (rows, cols) =>
       set((state) => {
@@ -69,12 +84,12 @@ export const useGridStore = create<GridState & GridActions>()(
         state.headers = defaultHeaders(cols);
         state.colWidths = defaultColWidths(cols);
         state.rowHeights = defaultRowHeights(rows);
+        state.zones = [];
       }),
 
     setCell: (id, value, options) =>
       set((state) => {
-        // Only delete if value is empty AND no format/formula
-        if ((value === null || value === '') && !options?.formula && !options?.format) {
+        if ((value === null || value === '') && !options?.formula && !options?.format && !options?.name) {
           delete state.cells[id];
         } else {
           state.cells[id] = {
@@ -82,6 +97,7 @@ export const useGridStore = create<GridState & GridActions>()(
             value: value ?? '',
             ...(options?.formula && { formula: options.formula }),
             ...(options?.format && { format: options.format }),
+            ...(options?.name && { name: options.name }),
           };
         }
       }),
@@ -99,6 +115,43 @@ export const useGridStore = create<GridState & GridActions>()(
     selectCell: (id) =>
       set((state) => {
         state.selectedCell = id;
+      }),
+
+    startSelection: (cellId) =>
+      set((state) => {
+        state.selectionStart = cellId;
+        state.selectionEnd = cellId;
+        state.isDragging = true;
+        state.selectedCell = cellId;
+      }),
+
+    extendSelection: (cellId) =>
+      set((state) => {
+        if (state.isDragging) {
+          state.selectionEnd = cellId;
+        }
+      }),
+
+    endSelection: () =>
+      set((state) => {
+        state.isDragging = false;
+      }),
+
+    clearSelection: () =>
+      set((state) => {
+        state.selectionStart = null;
+        state.selectionEnd = null;
+        state.isDragging = false;
+      }),
+
+    addZone: (zone) =>
+      set((state) => {
+        state.zones.push(zone);
+      }),
+
+    deleteZone: (zoneId) =>
+      set((state) => {
+        state.zones = state.zones.filter((z) => z.id !== zoneId);
       }),
 
     insertRow: (afterRow) =>
@@ -170,8 +223,6 @@ export const useGridStore = create<GridState & GridActions>()(
 
     insertColumn: (afterCol) =>
       set((state) => {
-        // Allow inserting beyond 26 columns for AI operations
-        // (Note: Display is limited to A-Z, but operations can work beyond)
         const newCells: Grid = {};
         for (const [id, cell] of Object.entries(state.cells)) {
           const { row, col } = cellIdToCoords(id);
@@ -268,8 +319,11 @@ export const useGridStore = create<GridState & GridActions>()(
         state.headers = data.headers ?? defaultHeaders(data.colCount);
         state.colWidths = data.colWidths ?? defaultColWidths(data.colCount);
         state.rowHeights = data.rowHeights ?? defaultRowHeights(data.rowCount);
+        state.zones = data.zones ?? [];
         state.editingCell = null;
         state.selectedCell = null;
+        state.selectionStart = null;
+        state.selectionEnd = null;
       }),
   }))
 );

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Snapshot } from '../types/version';
-import { saveSnapshotToDB, loadSnapshotsFromDB } from '../utils/versionPersistence';
+import { saveSnapshotToDB, loadSnapshotsFromDB, deleteSnapshotFromDB } from '../utils/versionPersistence';
 import { useGridStore } from './gridStore';
 import { saveGridData } from '../utils/persistence';
 import { exportCelliumFile, parseCelliumFile, readFileAsText } from '../utils/celliumFile';
@@ -12,6 +12,7 @@ interface VersionStore {
   isRestoring: boolean;
 
   createSnapshot: (name: string, author: string) => void;
+  deleteSnapshot: (snapshotId: string) => void;
   loadSnapshots: () => Promise<void>;
   restoreFromSnapshot: (snapshotId: string) => void;
   exportFile: () => void;
@@ -25,14 +26,14 @@ export const useVersionStore = create<VersionStore>()(
     isRestoring: false,
 
     createSnapshot: (name, author) => {
-      const { cells, rowCount, colCount, headers } = useGridStore.getState();
+      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
 
       const snapshot: Snapshot = {
         id: crypto.randomUUID(),
         timestamp: new Date().toISOString(),
         name,
         author,
-        gridData: { cells, rowCount, colCount, headers },
+        gridData: { cells, rowCount, colCount, headers, colWidths, rowHeights, zones },
       };
 
       set((state) => {
@@ -42,6 +43,16 @@ export const useVersionStore = create<VersionStore>()(
       // Persist to backend (fire-and-forget)
       saveSnapshotToDB(snapshot).catch((error) => {
         console.error('Failed to save snapshot:', error);
+      });
+    },
+
+    deleteSnapshot: (snapshotId) => {
+      set((state) => {
+        state.snapshots = state.snapshots.filter((s) => s.id !== snapshotId);
+      });
+
+      deleteSnapshotFromDB(snapshotId).catch((error) => {
+        console.error('Failed to delete snapshot:', error);
       });
     },
 
@@ -96,9 +107,9 @@ export const useVersionStore = create<VersionStore>()(
     },
 
     exportFile: () => {
-      const { cells, rowCount, colCount, headers, colWidths, rowHeights } = useGridStore.getState();
+      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
       const { snapshots } = get();
-      exportCelliumFile({ cells, rowCount, colCount, headers, colWidths, rowHeights }, snapshots);
+      exportCelliumFile({ cells, rowCount, colCount, headers, colWidths, rowHeights, zones }, snapshots);
     },
 
     importFile: async (file) => {

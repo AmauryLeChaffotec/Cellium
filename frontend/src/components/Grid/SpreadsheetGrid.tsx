@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Grid, useGridRef } from 'react-window';
 import { useGridStore } from '../../stores/gridStore';
 import { cellIdToCoords } from '../../utils/cellUtils';
+import { getSelectionRows, rangeToString } from '../../utils/rangeUtils';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useAutoSave } from '../../hooks/useAutoSave';
 import { GridHeader } from './GridHeader';
 import { VirtualCell } from './VirtualCell';
 import { ContextMenu } from './ContextMenu';
 import type { ContextMenuItem } from './ContextMenu';
+import { ZoneDialog } from './ZoneDialog';
 
 interface ContextMenuState {
   x: number;
@@ -27,12 +29,20 @@ export function SpreadsheetGrid() {
   const insertColumn = useGridStore((s) => s.insertColumn);
   const deleteColumn = useGridStore((s) => s.deleteColumn);
   const setRowHeight = useGridStore((s) => s.setRowHeight);
+  const endSelection = useGridStore((s) => s.endSelection);
+  const selectionStart = useGridStore((s) => s.selectionStart);
+  const selectionEnd = useGridStore((s) => s.selectionEnd);
+  const addZone = useGridStore((s) => s.addZone);
+  const clearSelection = useGridStore((s) => s.clearSelection);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
   const rwGridRef = useGridRef(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [showZoneDialog, setShowZoneDialog] = useState(false);
   const rowDragRef = useRef<{ rowIndex: number; startY: number; startHeight: number } | null>(null);
+
+  const hasRangeSelection = selectionStart && selectionEnd && selectionStart !== selectionEnd;
 
   useKeyboardNav(containerRef);
   useAutoSave();
@@ -121,9 +131,72 @@ export function SpreadsheetGrid() {
     [rowHeights, setRowHeight]
   );
 
+  const handleMouseUp = useCallback(() => {
+    endSelection();
+  }, [endSelection]);
+
+  const handleCreateZone = useCallback(
+    (name: string, description: string, color: string) => {
+      if (!selectionStart || !selectionEnd) return;
+      addZone({
+        id: crypto.randomUUID(),
+        name,
+        description,
+        color,
+        startCell: selectionStart,
+        endCell: selectionEnd,
+      });
+      setShowZoneDialog(false);
+      clearSelection();
+    },
+    [selectionStart, selectionEnd, addZone, clearSelection]
+  );
+
   function buildMenuItems(targetRow: number | null, targetCol: number | null): ContextMenuItem[] {
     const items: ContextMenuItem[] = [];
 
+    // Selection-specific items
+    if (hasRangeSelection) {
+      const range = rangeToString(selectionStart!, selectionEnd!);
+      items.push({
+        label: `Créer une zone (${range})`,
+        action: () => setShowZoneDialog(true),
+      });
+
+      const { minRow, maxRow } = getSelectionRows(selectionStart!, selectionEnd!);
+      const rowCountInSelection = maxRow - minRow + 1;
+
+      items.push({ label: '', action: () => {}, separator: true });
+      items.push({
+        label: `Insérer ${rowCountInSelection} ligne(s) au-dessus`,
+        action: () => {
+          for (let i = 0; i < rowCountInSelection; i++) {
+            insertRow(minRow - 1);
+          }
+        },
+      });
+      items.push({
+        label: `Insérer ${rowCountInSelection} ligne(s) en-dessous`,
+        action: () => {
+          for (let i = 0; i < rowCountInSelection; i++) {
+            insertRow(maxRow + i);
+          }
+        },
+      });
+      items.push({
+        label: `Supprimer ${rowCountInSelection} ligne(s) sélectionnée(s)`,
+        action: () => {
+          for (let i = maxRow; i >= minRow; i--) {
+            deleteRow(i);
+          }
+          clearSelection();
+        },
+      });
+
+      return items;
+    }
+
+    // Single cell / row / column items
     if (targetRow !== null) {
       items.push(
         { label: 'Insérer une ligne au-dessus', action: () => insertRow(targetRow - 1) },
@@ -161,6 +234,7 @@ export function SpreadsheetGrid() {
         height: 'calc(100vh - 80px)',
       }}
       onContextMenu={handleContextMenu}
+      onMouseUp={handleMouseUp}
     >
       {/* Corner cell */}
       <div className="bg-gray-100 border border-gray-200 z-20" />
@@ -212,6 +286,14 @@ export function SpreadsheetGrid() {
           y={contextMenu.y}
           items={buildMenuItems(contextMenu.targetRow, contextMenu.targetCol)}
           onClose={closeContextMenu}
+        />
+      )}
+
+      {/* Zone creation dialog */}
+      {showZoneDialog && (
+        <ZoneDialog
+          onConfirm={handleCreateZone}
+          onCancel={() => setShowZoneDialog(false)}
         />
       )}
     </div>

@@ -1,4 +1,5 @@
 import type { Grid } from '../types/cell';
+import type { Zone } from '../types/zone';
 import { apiFetch } from './api';
 
 export interface GridPersistData {
@@ -8,6 +9,7 @@ export interface GridPersistData {
   headers: string[];
   colWidths?: number[];
   rowHeights?: number[];
+  zones?: Zone[];
 }
 
 export async function saveGridData(data: GridPersistData): Promise<void> {

@@ -130,6 +130,24 @@ def save_data():
     return jsonify({"status": "ok"})
 
 
+@app.route("/api/data/snapshot/<snapshot_id>", methods=["DELETE"])
+def delete_snapshot(snapshot_id):
+    """Delete a snapshot by ID for the current session."""
+    session_id, error = _require_session()
+    if error:
+        return error
+
+    current = _read_data(session_id)
+    before = len(current.get("snapshots", []))
+    current["snapshots"] = [s for s in current.get("snapshots", []) if s.get("id") != snapshot_id]
+
+    if len(current["snapshots"]) == before:
+        return jsonify({"error": "Snapshot not found"}), 404
+
+    _write_data(session_id, current)
+    return jsonify({"status": "ok"})
+
+
 @app.route("/api/data/lastmod", methods=["GET"])
 def get_lastmod():
     """Return the last modification timestamp of the session data file."""
