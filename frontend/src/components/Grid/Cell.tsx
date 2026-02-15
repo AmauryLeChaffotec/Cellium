@@ -90,8 +90,9 @@ export function Cell({ cellId }: CellProps) {
   const columnTypes = useGridStore((s) => s.columnTypes);
   const zoneResizing = useGridStore((s) => s.zoneResizing);
 
-  const colIndex = cellIdToCoords(cellId).col;
+  const { row: rowIndex, col: colIndex } = cellIdToCoords(cellId);
   const columnType = columnTypes[colIndex] ?? 'none';
+  const isEvenRow = rowIndex % 2 === 0;
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState('');
@@ -263,6 +264,9 @@ export function Cell({ cellId }: CellProps) {
 
   // Build background style
   let bgStyle: React.CSSProperties = {};
+  if (isEvenRow) {
+    bgStyle = { backgroundColor: '#f1f5f9' }; // slate-100 for zebra striping
+  }
   if (hasFormatError) {
     bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
   } else if (zoneColor) {
