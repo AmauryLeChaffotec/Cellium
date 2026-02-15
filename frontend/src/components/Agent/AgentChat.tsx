@@ -35,10 +35,10 @@ export function AgentChat() {
     return (
       <button
         onClick={toggleOpen}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-colors z-50"
+        className="fixed bottom-6 right-6 w-12 h-12 bg-gradient-to-br from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-full shadow-lg shadow-indigo-300/40 flex items-center justify-center z-50 active:scale-95"
         title="Assistant IA"
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
         </svg>
       </button>
@@ -46,20 +46,25 @@ export function AgentChat() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col z-50 overflow-hidden">
+    <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl shadow-gray-300/50 border border-gray-200/80 flex flex-col z-50 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white shrink-0">
-        <div className="flex items-center gap-2">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-          <span className="font-medium text-sm">Assistant Cellium</span>
+      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-sm">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div>
+            <span className="font-semibold text-sm">Assistant Cellium</span>
+            <p className="text-[10px] text-white/60 leading-none mt-0.5">IA</p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           {messages.length > 0 && (
             <button
               onClick={clearMessages}
-              className="p-1.5 hover:bg-blue-700 rounded transition-colors"
+              className="p-1.5 hover:bg-white/15 rounded-lg transition-colors"
               title="Effacer la conversation"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -70,7 +75,7 @@ export function AgentChat() {
           )}
           <button
             onClick={toggleOpen}
-            className="p-1.5 hover:bg-blue-700 rounded transition-colors"
+            className="p-1.5 hover:bg-white/15 rounded-lg transition-colors"
             title="Fermer"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -82,11 +87,16 @@ export function AgentChat() {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50/50">
         {messages.length === 0 && !isLoading && (
-          <div className="text-center text-gray-400 text-sm mt-8">
-            <p className="mb-2">Demandez-moi de modifier votre tableur.</p>
-            <p className="text-xs text-gray-300">Ex: "Ajoute le total des prix"</p>
+          <div className="text-center mt-12 px-4">
+            <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />
+              </svg>
+            </div>
+            <p className="text-sm font-medium text-gray-700 mb-1">Demandez-moi de modifier votre tableur</p>
+            <p className="text-xs text-gray-400">Ex: "Ajoute le total des prix"</p>
           </div>
         )}
 
@@ -96,10 +106,10 @@ export function AgentChat() {
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] px-3 py-2 rounded-lg text-sm whitespace-pre-wrap ${
+              className={`max-w-[85%] px-3.5 py-2.5 text-sm whitespace-pre-wrap leading-relaxed ${
                 msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-br-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+                  ? 'bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-2xl rounded-br-md shadow-sm'
+                  : 'bg-white text-gray-700 rounded-2xl rounded-bl-md shadow-sm border border-gray-100'
               }`}
             >
               {msg.content}
@@ -109,11 +119,11 @@ export function AgentChat() {
 
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 text-gray-500 px-3 py-2 rounded-lg rounded-bl-sm text-sm">
-              <span className="inline-flex gap-1">
-                <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
-                <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+            <div className="bg-white text-gray-400 px-4 py-3 rounded-2xl rounded-bl-md text-sm shadow-sm border border-gray-100">
+              <span className="inline-flex gap-1.5">
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
               </span>
             </div>
           </div>
@@ -123,7 +133,7 @@ export function AgentChat() {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 px-3 py-3 shrink-0">
+      <div className="border-t border-gray-100 px-3 py-3 shrink-0 bg-white">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -132,17 +142,16 @@ export function AgentChat() {
             onKeyDown={handleKeyDown}
             placeholder="Votre demande..."
             rows={1}
-            className="flex-1 resize-none border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 max-h-20"
+            className="flex-1 resize-none border border-gray-200 bg-gray-50 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 focus:bg-white max-h-20 placeholder:text-gray-400"
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
-            className="px-3 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
+            className="p-2.5 bg-gradient-to-br from-indigo-500 to-violet-600 text-white rounded-xl hover:from-indigo-600 hover:to-violet-700 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-sm active:scale-95"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>
           </button>
         </div>

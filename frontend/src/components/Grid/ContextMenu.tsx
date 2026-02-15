@@ -42,12 +42,12 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
     <div
       ref={menuRef}
       data-testid="context-menu"
-      className="fixed bg-white shadow-lg rounded-md border border-gray-200 py-1 z-50 min-w-[200px]"
+      className="fixed bg-white/95 backdrop-blur-lg shadow-xl shadow-gray-200/50 rounded-xl border border-gray-200/80 py-1.5 z-50 min-w-[220px]"
       style={{ left: x, top: y }}
     >
       {items.map((item, idx) => (
         item.separator ? (
-          <hr key={idx} className="border-t border-gray-200 my-1" />
+          <hr key={idx} className="border-t border-gray-100 my-1 mx-2" />
         ) : item.children ? (
           <div
             key={idx}
@@ -56,21 +56,25 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             onMouseLeave={() => setOpenSubIdx(null)}
           >
             <button
-              className="w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 cursor-pointer flex items-center justify-between"
+              className="w-full text-left px-3 py-1.5 text-[13px] text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer flex items-center justify-between rounded-md mx-1 pr-2"
+              style={{ width: 'calc(100% - 8px)' }}
               data-testid={`context-menu-item-${idx}`}
             >
               <span>{item.label}</span>
-              <span className="text-gray-400 ml-2">&#x25B6;</span>
+              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+              </svg>
             </button>
             {openSubIdx === idx && (
-              <div className="absolute left-full top-0 bg-white shadow-lg rounded-md border border-gray-200 py-1 min-w-[160px] z-50">
+              <div className="absolute left-full top-0 bg-white/95 backdrop-blur-lg shadow-xl shadow-gray-200/50 rounded-xl border border-gray-200/80 py-1.5 min-w-[170px] z-50 -ml-1">
                 {item.children.map((child, childIdx) => (
                   child.separator ? (
-                    <hr key={childIdx} className="border-t border-gray-200 my-1" />
+                    <hr key={childIdx} className="border-t border-gray-100 my-1 mx-2" />
                   ) : (
                     <button
                       key={childIdx}
-                      className="w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 cursor-pointer"
+                      className="w-full text-left px-3 py-1.5 text-[13px] text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer rounded-md mx-1"
+                      style={{ width: 'calc(100% - 8px)' }}
                       onClick={() => {
                         child.action();
                         onClose();
@@ -86,7 +90,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         ) : (
           <button
             key={idx}
-            className="w-full text-left px-3 py-1.5 text-sm hover:bg-blue-50 cursor-pointer"
+            className="w-full text-left px-3 py-1.5 text-[13px] text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 cursor-pointer rounded-md mx-1"
+            style={{ width: 'calc(100% - 8px)' }}
             onClick={() => {
               item.action();
               onClose();

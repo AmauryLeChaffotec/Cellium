@@ -241,7 +241,7 @@ export function Cell({ cellId }: CellProps) {
           onChange={(e) => setInputValue(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-full h-full border-2 border-blue-500 outline-none px-1 text-sm resize-none"
+          className="w-full h-full border-2 border-indigo-500 outline-none px-1 text-sm resize-none bg-white"
           data-testid={`cell-input-${cellId}`}
         />
       </div>
@@ -269,7 +269,7 @@ export function Cell({ cellId }: CellProps) {
     bgStyle = { backgroundColor: `${zoneColor}20` };
   }
   if (isInSelection) {
-    bgStyle = { backgroundColor: 'rgba(59, 130, 246, 0.15)' };
+    bgStyle = { backgroundColor: 'rgba(99, 102, 241, 0.12)' };
   }
 
   // Build border style for active zone edges
@@ -295,7 +295,7 @@ export function Cell({ cellId }: CellProps) {
       className={`relative w-full h-full px-1 py-1 text-sm cursor-default break-words select-none ${
         activeZoneEdges ? '' : 'overflow-hidden'
       } ${
-        isSelected ? 'ring-2 ring-blue-500 ring-inset border border-transparent' : 'border border-gray-200'
+        isSelected ? 'ring-2 ring-indigo-500 ring-inset border border-transparent' : 'border border-gray-200/80'
       } ${isNumericType ? 'text-right' : ''}`}
       style={{
         ...bgStyle,

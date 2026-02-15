@@ -425,14 +425,14 @@ export function SpreadsheetGrid() {
       style={{
         gridTemplateColumns: '40px 1fr',
         gridTemplateRows: '32px 1fr',
-        height: 'calc(100vh - 80px)',
+        height: 'calc(100vh - 49px)',
       }}
       onContextMenu={handleContextMenu}
       onMouseUp={handleMouseUp}
       onClick={handleContainerClick}
     >
       {/* Corner cell */}
-      <div className="bg-gray-100 border border-gray-200 z-20" />
+      <div className="bg-slate-100 border-b border-r border-gray-200 z-20" />
 
       {/* Column headers — scroll horizontal synced */}
       <div ref={headerRef} className="overflow-hidden z-10">
@@ -445,7 +445,7 @@ export function SpreadsheetGrid() {
           <div
             key={i + 1}
             data-row-header={i + 1}
-            className="relative bg-gray-50 text-center text-gray-500 text-sm border border-gray-200 flex items-center justify-center"
+            className="relative bg-slate-50 text-center text-gray-400 text-xs font-medium border-b border-r border-gray-200 flex items-center justify-center select-none"
             style={{ height: rowHeights[i] ?? 32 }}
           >
             {i + 1}

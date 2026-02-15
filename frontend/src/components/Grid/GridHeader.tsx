@@ -81,7 +81,7 @@ export function GridHeader() {
         <div
           key={i}
           data-col-header={i}
-          className="relative shrink-0 h-8 bg-gray-100 font-medium text-center text-sm border border-gray-200 leading-8"
+          className="relative shrink-0 h-8 bg-slate-100 font-medium text-center text-xs text-gray-600 border-b border-r border-gray-200 leading-8 select-none"
           style={{ width: colWidths[i] ?? 100 }}
           onDoubleClick={() => startEditingHeader(i)}
         >
