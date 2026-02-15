@@ -272,6 +272,27 @@ export function Cell({ cellId }: CellProps) {
 
   const isNumericType = columnType === 'number' || columnType === 'currency' || columnType === 'percentage';
 
+  // For header rows: col 0 concatenates all cells in the row (merged title effect)
+  // Other cols show nothing (just the background band)
+  const effectiveDisplay = (() => {
+    if (!rowStyle || rowStyle.type !== 'header') return displayValue;
+    if (colIndex > 0) return '';
+    const cc = useGridStore.getState().colCount;
+    const parts: string[] = [];
+    for (let c = 0; c < cc; c++) {
+      const cId = coordsToCellId(rowIndex, c);
+      const cd = allCells[cId];
+      if (!cd) continue;
+      if (cd.formula) {
+        const r = evaluateFormula(cd.formula, allCells, headers);
+        if (r !== null && r !== '') parts.push(String(r));
+      } else if (cd.value !== null && cd.value !== undefined && cd.value !== '') {
+        parts.push(String(cd.value));
+      }
+    }
+    return parts.join(' ');
+  })();
+
   // Format validation: red background if value doesn't match type (skip formulas)
   const hasFormatError = !cellFormula && cellValue !== null && cellValue !== '' && !isValueValidForType(cellValue, columnType);
 
@@ -318,18 +339,35 @@ export function Cell({ cellId }: CellProps) {
         ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
         : undefined;
 
+  // Build className depending on row style
+  const isFirstCol = colIndex === 0;
+  let cellClassName = 'relative w-full h-full cursor-default select-none';
+
+  if (isHeaderRow) {
+    cellClassName += ' py-1 flex items-center border border-transparent';
+    cellClassName += isFirstCol
+      ? ' text-lg font-bold px-4 overflow-visible whitespace-nowrap'
+      : ' text-sm px-1 overflow-hidden';
+    if (isSelected) cellClassName += ' ring-2 ring-indigo-500 ring-inset';
+  } else {
+    cellClassName += ' px-1 py-1 break-words text-sm';
+    cellClassName += activeZoneEdges ? '' : ' overflow-hidden';
+    cellClassName += isSelected
+      ? ' ring-2 ring-indigo-500 ring-inset border border-transparent'
+      : rowStyle?.backgroundColor
+        ? ' border border-gray-200/30'
+        : ' border border-gray-200/80';
+    if (isNumericType) cellClassName += ' text-right';
+  }
+
   return (
     <div
-      className={`relative w-full h-full px-1 py-1 cursor-default break-words select-none ${
-        isHeaderRow ? 'text-base font-bold flex items-center' : 'text-sm'
-      } ${
-        activeZoneEdges ? '' : 'overflow-hidden'
-      } ${
-        isSelected ? 'ring-2 ring-indigo-500 ring-inset border border-transparent' : 'border border-gray-200/80'
-      } ${isNumericType && !isHeaderRow ? 'text-right' : ''}`}
+      className={cellClassName}
       style={{
         ...bgStyle,
         ...borderStyle,
+        ...(isHeaderRow && isFirstCol && effectiveDisplay ? { zIndex: 10 } : {}),
+        ...(isHeaderRow ? { borderBottom: '2px solid rgba(0,0,0,0.12)' } : {}),
         ...(hasFormatError ? { borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: '#ef4444' } : {}),
       }}
       title={tooltip}
@@ -358,10 +396,10 @@ export function Cell({ cellId }: CellProps) {
       {cellName ? (
         <div className="flex flex-col gap-0.5">
           <span className="text-xs font-bold uppercase tracking-wide text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded w-fit truncate max-w-full">{cellName}</span>
-          <span className="text-base font-semibold truncate">{displayValue}</span>
+          <span className="text-base font-semibold truncate">{effectiveDisplay}</span>
         </div>
       ) : (
-        displayValue
+        effectiveDisplay
       )}
       {activeZoneEdges && zoneInfo && (
         <>

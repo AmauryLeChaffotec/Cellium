@@ -20,7 +20,10 @@ data/sessions/{sessionId}/spreadsheet.json
     "headers": ["produit", "prix", "C", ...],
     "colWidths": [100, 100, ...],
     "rowHeights": [32, 32, ...],
-    "zones": [ ... ]
+    "columnTypes": ["none", "none", "number", ...],
+    "rowStyles": [null, null, { "type": "header" }, ...],
+    "zones": [ ... ],
+    "charts": [ ... ]
   },
   "snapshots": [ ... ]
 }
@@ -249,16 +252,161 @@ Le tableau `headers` contient les noms des colonnes. Utiliser ces noms pour comp
 
 Les colonnes avec des noms par defaut ("C", "D", ...) sont vides/inutilisees.
 
+## Types de colonnes (columnTypes)
+
+Le tableau `columnTypes` definit le format d'affichage de chaque colonne. Un element par colonne, meme index que `headers`.
+
+Valeurs possibles :
+| Type | Description | Exemple d'affichage |
+|------|------------|---------------------|
+| `"none"` | Aucun format (defaut) | Valeur brute |
+| `"text"` | Texte | Texte tel quel |
+| `"number"` | Nombre | Alignement a droite |
+| `"currency"` | Devise (euros) | `12,50 €` |
+| `"percentage"` | Pourcentage | `75 %` |
+| `"date"` | Date | Format date |
+| `"boolean"` | Booleen | Case a cocher |
+
+### Comment modifier les types de colonnes
+
+Modifier le tableau `columnTypes` dans le fichier. Il doit avoir autant d'elements que de colonnes :
+
+```json
+"columnTypes": ["text", "currency", "percentage", "none", ...]
+```
+
+Si le tableau n'existe pas ou est plus court que le nombre de colonnes, les colonnes manquantes sont traitees comme `"none"`.
+
+## Styles de lignes (rowStyles)
+
+Le tableau `rowStyles` permet de definir un style visuel pour chaque ligne. Un element par ligne (base 0). `null` = pas de style special.
+
+### Types de styles
+
+| Type | Description | Effet visuel |
+|------|------------|--------------|
+| `{ "type": "header" }` | Ligne de titre/section | Texte gros et gras, fond gris, prend toute la largeur |
+| `{ "type": "separator" }` | Ligne de separation | Ligne vide avec fond colore |
+| `{ "backgroundColor": "#hex" }` | Couleur de fond | Fond colore personnalise |
+| `{ "type": "header", "backgroundColor": "#hex" }` | Titre avec couleur | Combine titre + couleur de fond |
+
+### Comment modifier les styles de lignes
+
+Le tableau `rowStyles` a un element par ligne. Index 0 = ligne 1 du tableur.
+
+```json
+"rowStyles": [
+  { "type": "header" },
+  null,
+  null,
+  { "backgroundColor": "#e8f5e9" },
+  null,
+  { "type": "separator" },
+  null
+]
+```
+
+**Important** : Quand on met une ligne en style `"header"`, toutes les valeurs des cellules de cette ligne sont automatiquement concatenees et affichees comme un seul titre sur toute la largeur. Il suffit de mettre le texte du titre dans la premiere cellule (colonne A) de cette ligne.
+
+Quand on ajoute un style `"header"`, augmenter aussi la hauteur de la ligne dans `rowHeights` (48 pixels recommande) :
+```json
+"rowHeights": [32, 32, 48, 32, ...]
+```
+
+## Graphiques (charts)
+
+Le tableau `charts` permet de creer des graphiques flottants au-dessus du tableur. Chaque graphique lit ses donnees depuis une plage de cellules.
+
+### Structure d'un graphique
+
+```json
+{
+  "id": "uuid-unique",
+  "name": "Ventes par mois",
+  "type": "bar",
+  "dataRange": "A1:C12",
+  "left": 500,
+  "top": 50,
+  "width": 400,
+  "height": 300
+}
+```
+
+| Champ | Type | Description |
+|-------|------|-------------|
+| `id` | string | Identifiant unique (UUID) |
+| `name` | string | Titre affiche en haut du graphique |
+| `type` | string | Type de graphique : `"bar"`, `"line"`, `"pie"`, `"area"` |
+| `dataRange` | string | Plage de cellules source (ex: `"A1:C12"`) |
+| `left` | number | Position X en pixels depuis la gauche |
+| `top` | number | Position Y en pixels depuis le haut |
+| `width` | number | Largeur en pixels (min 200, defaut 400) |
+| `height` | number | Hauteur en pixels (min 150, defaut 300) |
+
+### Comment les donnees sont lues
+
+La plage `dataRange` est interpretee ainsi :
+- **Premiere colonne** = labels (noms affiches sur l'axe X ou noms des parts du camembert)
+- **Colonnes suivantes** = series de donnees (une serie par colonne)
+- Les noms des series sont pris des en-tetes de colonnes
+
+Exemple avec `dataRange: "A1:C5"` :
+
+| | A (labels) | B (serie 1) | C (serie 2) |
+|--|-----------|-------------|-------------|
+| 1 | Janvier | 100 | 80 |
+| 2 | Fevrier | 120 | 90 |
+| 3 | Mars | 110 | 85 |
+| 4 | Avril | 130 | 95 |
+| 5 | Mai | 140 | 100 |
+
+### Types de graphiques
+
+| Type | Description | Meilleur pour |
+|------|------------|---------------|
+| `"bar"` | Barres verticales | Comparer des valeurs |
+| `"line"` | Lignes avec points | Tendances, evolution |
+| `"pie"` | Camembert (1 serie) | Repartition / proportions |
+| `"area"` | Aires colorees | Volume, accumulation |
+
+### Comment creer un graphique
+
+Ajouter un objet au tableau `charts` dans le fichier :
+
+```json
+"charts": [
+  {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Evolution des ventes",
+    "type": "line",
+    "dataRange": "A1:B12",
+    "left": 600,
+    "top": 100,
+    "width": 450,
+    "height": 300
+  }
+]
+```
+
+**Conseils** :
+- Generer un UUID unique pour chaque graphique (format : `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`)
+- Positionner le graphique a droite ou en dessous des donnees pour ne pas cacher le tableur (`left` > 500)
+- Le camembert (`"pie"`) n'utilise que la premiere serie de donnees
+- Les formules dans les cellules de la plage sont evaluees automatiquement
+
 ## Regles importantes
 
 1. **Toujours utiliser des formules** pour les calculs (totaux, moyennes, etc.), jamais des valeurs statiques
 2. **Un resultat = une seule cellule** avec `name` ET `description`. Ne pas utiliser une cellule pour le label et une autre pour la valeur
 3. **Toujours ajouter `name` et `description`** a chaque cellule de formule. Le `name` est un label court, la `description` explique ce que la formule calcule et sur quelle plage
-3. **Ne pas modifier** `rowCount`, `colCount`, `colWidths`, `rowHeights` sauf si on ajoute/supprime des lignes ou colonnes
-4. **Ne pas modifier les zones** sauf si l'utilisateur le demande
-5. **Ne pas toucher aux snapshots** sauf si l'utilisateur le demande
-6. **Placer les totaux/resultats en dehors des zones** (ligne juste apres la derniere ligne de la zone)
-7. **Conserver le champ `id`** identique a la cle de la cellule
+4. **Ne pas modifier** `rowCount`, `colCount`, `colWidths`, `rowHeights` sauf si on ajoute/supprime des lignes ou colonnes
+5. **Ne pas modifier les zones** sauf si l'utilisateur le demande
+6. **Ne pas toucher aux snapshots** sauf si l'utilisateur le demande
+7. **Placer les totaux/resultats en dehors des zones** (ligne juste apres la derniere ligne de la zone)
+8. **Conserver le champ `id`** identique a la cle de la cellule
+9. **Utiliser des titres de section** (`rowStyles` avec `type: "header"`) pour structurer le tableau visuellement
+10. **Definir les types de colonnes** (`columnTypes`) pour un affichage correct des donnees (devise, pourcentage, etc.)
+11. **ID unique pour les graphiques** : toujours generer un UUID different pour chaque graphique
 
 ## Exemple complet
 
@@ -290,3 +438,58 @@ Resultat affiche dans le navigateur :
 - Si on modifie un prix, les totaux se mettent a jour instantanement
 - Chaque resultat tient dans une seule cellule
 - L'utilisateur peut faire clic droit sur la cellule pour voir et modifier la formule
+
+## Exemple complet avec mise en forme et graphique
+
+L'utilisateur demande : "Fais-moi un tableau des ventes par mois avec un titre, les prix en euros, et un graphique en barres"
+
+Modifications a appliquer dans le fichier `spreadsheet.json` :
+
+```json
+{
+  "grid": {
+    "headers": ["mois", "ventes", "C", ...],
+    "columnTypes": ["text", "currency", "none", ...],
+    "rowStyles": [
+      { "type": "header" },
+      null, null, null, null,
+      null
+    ],
+    "rowHeights": [48, 32, 32, 32, 32, 32, ...],
+    "cells": {
+      "A1": { "id": "A1", "value": "Ventes trimestrielles" },
+      "A2": { "id": "A2", "value": "Janvier" },
+      "B2": { "id": "B2", "value": 1500 },
+      "A3": { "id": "A3", "value": "Fevrier" },
+      "B3": { "id": "B3", "value": 1800 },
+      "A4": { "id": "A4", "value": "Mars" },
+      "B4": { "id": "B4", "value": 2100 },
+      "B5": {
+        "id": "B5",
+        "value": "=SUM(B2:B4)",
+        "formula": "=SUM(B2:B4)",
+        "name": "Total ventes",
+        "description": "Somme des ventes de janvier a mars"
+      }
+    },
+    "charts": [
+      {
+        "id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+        "name": "Ventes par mois",
+        "type": "bar",
+        "dataRange": "A2:B4",
+        "left": 600,
+        "top": 50,
+        "width": 400,
+        "height": 300
+      }
+    ]
+  }
+}
+```
+
+Resultat :
+- Ligne 1 : titre "Ventes trimestrielles" en gros gras sur toute la largeur
+- Colonne B : affiche les valeurs en format euros (1 500 €, 1 800 €, etc.)
+- B5 : formule de total avec label "Total ventes"
+- Graphique en barres flottant a droite montrant les 3 mois

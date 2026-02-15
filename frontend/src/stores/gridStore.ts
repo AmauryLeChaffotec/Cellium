@@ -705,7 +705,7 @@ export const useGridStore = create<GridState & GridActions>()(
         if (rowIndex < 0 || rowIndex >= state.rowStyles.length) return;
         state.rowStyles[rowIndex] = style;
         if (style?.type === 'header' && state.rowHeights[rowIndex] <= DEFAULT_ROW_HEIGHT) {
-          state.rowHeights[rowIndex] = 40;
+          state.rowHeights[rowIndex] = 48;
         } else if (style?.type === 'separator') {
           state.rowHeights[rowIndex] = 8;
         } else if (style === null) {
