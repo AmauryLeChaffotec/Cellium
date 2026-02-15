@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type { Grid, CellFormat, ColumnType, RowStyle } from '../types/cell';
 import type { Zone } from '../types/zone';
+import type { Chart } from '../types/chart';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
 import { normalizeRange } from '../utils/rangeUtils';
@@ -121,6 +122,7 @@ interface GridState {
   columnTypes: ColumnType[];
   rowStyles: (RowStyle | null)[];
   zones: Zone[];
+  charts: Chart[];
   editingCell: string | null;
   selectedCell: string | null;
   selectionStart: string | null;
@@ -165,6 +167,9 @@ interface GridActions {
   setColWidth: (colIndex: number, width: number) => void;
   setRowHeight: (rowIndex: number, height: number) => void;
   setRowStyle: (rowIndex: number, style: RowStyle | null) => void;
+  addChart: (chart: Chart) => void;
+  updateChart: (chartId: string, updates: Partial<Omit<Chart, 'id'>>) => void;
+  deleteChart: (chartId: string) => void;
   loadGrid: (data: GridPersistData) => void;
 }
 
@@ -179,6 +184,7 @@ export const useGridStore = create<GridState & GridActions>()(
     columnTypes: defaultColumnTypes(26),
     rowStyles: defaultRowStyles(100),
     zones: [],
+    charts: [],
     editingCell: null,
     selectedCell: null,
     selectionStart: null,
@@ -198,6 +204,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.columnTypes = defaultColumnTypes(cols);
         state.rowStyles = defaultRowStyles(rows);
         state.zones = [];
+        state.charts = [];
       }),
 
     setCell: (id, value, options) =>
@@ -706,9 +713,30 @@ export const useGridStore = create<GridState & GridActions>()(
         }
       }),
 
+    addChart: (chart) =>
+      set((state) => {
+        state.charts.push(chart);
+      }),
+
+    updateChart: (chartId, updates) =>
+      set((state) => {
+        const chart = state.charts.find((c) => c.id === chartId);
+        if (chart) Object.assign(chart, updates);
+      }),
+
+    deleteChart: (chartId) =>
+      set((state) => {
+        state.charts = state.charts.filter((c) => c.id !== chartId);
+      }),
+
     loadGrid: (data) =>
       set((state) => {
-        state.cells = data.cells;
+        // Deep-clone cells to avoid mutating frozen Immer objects (e.g. from snapshot restore)
+        const freshCells: Grid = {};
+        for (const [id, cell] of Object.entries(data.cells)) {
+          freshCells[id] = { ...cell };
+        }
+        state.cells = freshCells;
         state.rowCount = data.rowCount;
         state.colCount = data.colCount;
         state.headers = data.headers ?? defaultHeaders(data.colCount);
@@ -717,6 +745,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.columnTypes = data.columnTypes ?? defaultColumnTypes(data.colCount);
         state.rowStyles = data.rowStyles ?? defaultRowStyles(data.rowCount);
         state.zones = data.zones ?? [];
+        state.charts = data.charts ?? [];
         state.editingCell = null;
         state.selectedCell = null;
         state.selectionStart = null;

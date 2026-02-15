@@ -9,6 +9,7 @@ import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useVersionStore } from '../stores/versionStore';
 import { useAuthStore } from '../stores/authStore';
 import { setSessionId } from '../utils/session';
+import { exportXlsx, exportCsv } from '../utils/exportGrid';
 
 export function SpreadsheetPage() {
   const { id } = useParams<{ id: string }>();
@@ -70,6 +71,27 @@ export function SpreadsheetPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => exportXlsx()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg font-medium"
+            title="Exporter en Excel"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            .xlsx
+          </button>
+          <button
+            onClick={() => exportCsv()}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg font-medium"
+            title="Exporter en CSV"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            .csv
+          </button>
+          <div className="w-px h-5 bg-gray-200 mx-0.5" />
           <button
             onClick={() => setIsHelpOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:text-indigo-700 hover:bg-indigo-50 rounded-lg font-medium"

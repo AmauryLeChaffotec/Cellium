@@ -10,8 +10,11 @@ import { VirtualCell } from './VirtualCell';
 import { ContextMenu } from './ContextMenu';
 import type { ContextMenuItem } from './ContextMenu';
 import { ZoneDialog } from './ZoneDialog';
+import { ChartDialog } from './ChartDialog';
+import { ChartOverlay } from './ChartOverlay';
 import { FormulaEditDialog } from './FormulaEditDialog';
 import type { Zone } from '../../types/zone';
+import type { Chart } from '../../types/chart';
 import type { ColumnType } from '../../types/cell';
 import { generateUUID } from '../../utils/uuid';
 
@@ -50,6 +53,9 @@ export function SpreadsheetGrid() {
   const setColumnType = useGridStore((s) => s.setColumnType);
   const rowStyles = useGridStore((s) => s.rowStyles);
   const setRowStyle = useGridStore((s) => s.setRowStyle);
+  const charts = useGridStore((s) => s.charts);
+  const addChart = useGridStore((s) => s.addChart);
+  const updateChart = useGridStore((s) => s.updateChart);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
@@ -58,6 +64,9 @@ export function SpreadsheetGrid() {
   const [showZoneDialog, setShowZoneDialog] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
   const [editingFormulaCellId, setEditingFormulaCellId] = useState<string | null>(null);
+  const [showChartDialog, setShowChartDialog] = useState(false);
+  const [chartDialogRange, setChartDialogRange] = useState<string | undefined>(undefined);
+  const [editingChart, setEditingChart] = useState<Chart | null>(null);
   const rowDragRef = useRef<{ rowIndex: number; startY: number; startHeight: number } | null>(null);
 
   const hasRangeSelection = selectionStart && selectionEnd && selectionStart !== selectionEnd;
@@ -280,6 +289,13 @@ export function SpreadsheetGrid() {
       items.push({
         label: `Créer une zone (${range})`,
         action: () => setShowZoneDialog(true),
+      });
+      items.push({
+        label: `Créer un graphique (${range})`,
+        action: () => {
+          setChartDialogRange(range);
+          setShowChartDialog(true);
+        },
       });
 
       const { minRow, maxRow } = getSelectionRows(selectionStart!, selectionEnd!);
@@ -567,6 +583,54 @@ export function SpreadsheetGrid() {
         <FormulaEditDialog
           cellId={editingFormulaCellId}
           onClose={() => setEditingFormulaCellId(null)}
+        />
+      )}
+
+      {/* Chart overlays */}
+      {charts.map((chart) => (
+        <ChartOverlay
+          key={chart.id}
+          chart={chart}
+          onEdit={(c) => setEditingChart(c)}
+        />
+      ))}
+
+      {/* Chart creation dialog */}
+      {showChartDialog && (
+        <ChartDialog
+          dataRange={chartDialogRange}
+          onConfirm={(chartData) => {
+            addChart({ ...chartData, id: generateUUID() });
+            setShowChartDialog(false);
+            setChartDialogRange(undefined);
+            clearSelection();
+          }}
+          onCancel={() => {
+            setShowChartDialog(false);
+            setChartDialogRange(undefined);
+          }}
+        />
+      )}
+
+      {/* Chart edit dialog */}
+      {editingChart && (
+        <ChartDialog
+          chart={editingChart}
+          onConfirm={(chartData) => {
+            if (chartData.id) {
+              updateChart(chartData.id, {
+                name: chartData.name,
+                type: chartData.type,
+                dataRange: chartData.dataRange,
+              });
+            }
+            setEditingChart(null);
+          }}
+          onDelete={() => {
+            useGridStore.getState().deleteChart(editingChart.id);
+            setEditingChart(null);
+          }}
+          onCancel={() => setEditingChart(null)}
         />
       )}
     </div>

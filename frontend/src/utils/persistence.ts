@@ -1,5 +1,6 @@
 import type { Grid, ColumnType, RowStyle } from '../types/cell';
 import type { Zone } from '../types/zone';
+import type { Chart } from '../types/chart';
 import { apiFetch } from './api';
 
 export interface GridPersistData {
@@ -12,6 +13,7 @@ export interface GridPersistData {
   columnTypes?: ColumnType[];
   rowStyles?: (RowStyle | null)[];
   zones?: Zone[];
+  charts?: Chart[];
 }
 
 export async function saveGridData(data: GridPersistData): Promise<void> {
