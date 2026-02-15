@@ -105,8 +105,8 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <section>
             <p className="text-gray-600 leading-relaxed">
               Cellium est un tableur intelligent avec un <strong>agent IA integre</strong>.
-              Manipulez vos donnees dans la grille, utilisez des formules,
-              ou <strong>demandez a l'agent IA</strong> de le faire pour vous en langage naturel.
+              Manipule tes donnees dans la grille, utilise des formules,
+              ou <strong>demande a l'agent IA</strong> de le faire pour toi en langage naturel.
             </p>
           </section>
 
@@ -114,10 +114,14 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <section>
             <h3 className="text-base font-semibold text-gray-800 mb-3">Prise en main</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Card title="Editer une cellule" desc="Double-cliquez sur une cellule pour la modifier. Validez avec Shift+Enter ou Tab." />
-              <Card title="Renommer une colonne" desc="Cliquez sur l'en-tete d'une colonne (A, B, C...) pour la renommer." />
-              <Card title="Creer une zone" desc="Selectionnez des cellules (clic + glisser), puis clic droit pour creer une zone nommee." />
+              <Card title="Editer une cellule" desc="Double-clique sur une cellule pour la modifier. Valide avec Shift+Enter ou Tab." />
+              <Card title="Renommer une colonne" desc="Clique sur l'en-tete d'une colonne (A, B, C...) pour la renommer." />
+              <Card title="Creer une zone" desc="Selectionne des cellules (clic + glisser), puis clic droit pour creer une zone nommee." />
               <Card title="Modifier une formule" desc="Clic droit sur une cellule avec formule pour voir sa plage et la modifier." />
+              <Card title="Creer un graphique" desc="Selectionne une plage de donnees, clic droit, puis 'Creer un graphique' pour visualiser tes donnees." />
+              <Card title="Styliser une ligne" desc="Clic droit sur une ligne pour ajouter un titre de section, un separateur ou une couleur." />
+              <Card title="Type de colonne" desc="Clic droit sur une colonne pour definir son type : texte, nombre, monnaie, pourcentage, date..." />
+              <Card title="Exporter" desc="Utilise les boutons .xlsx et .csv dans la barre d'outils pour exporter ton tableur." />
             </div>
           </section>
 
@@ -125,7 +129,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <section className="bg-blue-50 rounded-lg p-5 border border-blue-100">
             <h3 className="text-base font-semibold text-blue-900 mb-2">L'agent IA</h3>
             <p className="text-sm text-blue-800 mb-3">
-              Utilisez le <strong>chat en bas a droite</strong> pour demander a l'agent de modifier votre tableur.
+              Utilise le <strong>chat en bas a droite</strong> pour demander a l'agent de modifier ton tableur.
               Il peut :
             </p>
             <ul className="space-y-1.5 text-sm text-blue-800">
@@ -133,6 +137,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
               <li><strong>Analyser vos donnees</strong> : "Quel est le produit le plus cher ?"</li>
               <li><strong>Remplir des cellules</strong> : "Ajoute une colonne categorie"</li>
               <li><strong>Creer des zones</strong> : "Cree une zone Produits sur A et B"</li>
+              <li><strong>Organiser les lignes</strong> : "Ajoute un titre de section a la ligne 1"</li>
             </ul>
             <p className="text-blue-600 text-xs mt-3 italic">
               L'agent ajoute automatiquement un nom et une description a chaque formule.
@@ -143,7 +148,7 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <section>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Noms de colonnes dans les formules</h3>
             <p className="text-sm text-gray-600 mb-2">
-              Utilisez le nom de la colonne au lieu de la lettre :
+              Utilise le nom de la colonne au lieu de la lettre :
             </p>
             <div className="bg-gray-50 rounded-lg p-3 font-mono text-xs space-y-1 border border-gray-200">
               <p><span className="text-green-700">=SUM(Prix1:Prix10)</span> au lieu de =SUM(B1:B10)</p>
@@ -202,6 +207,84 @@ export function HelpModal({ onClose }: HelpModalProps) {
             </div>
           </section>
 
+          {/* Graphiques */}
+          <section>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Graphiques</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Cree des graphiques interactifs a partir de tes donnees pour mieux les visualiser.
+            </p>
+            <div className="space-y-2">
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm text-gray-600 space-y-2">
+                <p><strong>Creer un graphique :</strong> Selectionne une plage de cellules (ex: A1:C10), fais un clic droit, puis "Creer un graphique".</p>
+                <p><strong>Plage de donnees :</strong> La premiere colonne sert de labels (noms), les colonnes suivantes sont les series de donnees.</p>
+                <p><strong>Types disponibles :</strong></p>
+                <div className="grid grid-cols-2 gap-1.5 ml-2">
+                  <span>Barres — comparaison de valeurs</span>
+                  <span>Ligne — evolution / tendances</span>
+                  <span>Camembert — repartition / parts</span>
+                  <span>Aire — volumes cumules</span>
+                </div>
+                <p><strong>Interactions :</strong> Deplace le graphique en glissant la barre de titre. Redimensionne avec la poignee en bas a droite. Clique sur l'engrenage pour modifier, ou la croix pour supprimer.</p>
+                <p><strong>Mise a jour :</strong> Les graphiques se mettent a jour automatiquement quand les donnees des cellules changent.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Styles de ligne */}
+          <section>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Styles de ligne</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Ameliore la lisibilite de ton tableur en stylisant les lignes.
+              Clic droit sur une ligne, puis "Style de ligne".
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm text-gray-600 space-y-1.5">
+              <p><strong>Titre de section :</strong> Transforme la ligne en bandeau de titre (fond colore, texte blanc, gras). Ideal pour separer les parties.</p>
+              <p><strong>Separateur :</strong> Reduit la ligne a une barre fine coloree. Utile pour marquer une coupure visuelle.</p>
+              <p><strong>Couleur de fond :</strong> Applique une couleur d'arriere-plan a la ligne (bleu, vert, jaune, orange, rouge, violet, gris). Combinable avec titre ou separateur.</p>
+              <p><strong>Effacer le style :</strong> Remet la ligne a son apparence par defaut.</p>
+            </div>
+          </section>
+
+          {/* Types de colonnes */}
+          <section>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Types de colonnes</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Definis un type pour chaque colonne afin de formater automatiquement les valeurs.
+              Clic droit sur une colonne, puis "Type de colonne".
+            </p>
+            <div className="overflow-hidden rounded-lg border border-gray-200">
+              <table className="w-full text-sm">
+                <tbody>
+                  {[
+                    ['Texte', 'Affichage brut, aucun formatage'],
+                    ['Nombre', 'Formatage numerique avec separateurs'],
+                    ['Monnaie (EUR)', 'Affiche le montant suivi du symbole EUR'],
+                    ['Pourcentage', 'Multiplie par 100 et ajoute le signe %'],
+                    ['Date', 'Formate en date lisible'],
+                    ['Boolean', 'Affiche vrai/faux ou une coche'],
+                  ].map(([type, desc], i) => (
+                    <tr key={type} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                      <td className="px-3 py-1.5 font-medium text-gray-700 text-xs w-36">{type}</td>
+                      <td className="px-3 py-1.5 text-xs text-gray-500">{desc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Export */}
+          <section>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Export</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Exporte ton tableur dans les formats suivants via les boutons dans la barre d'outils :
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 text-sm text-gray-600 space-y-1.5">
+              <p><strong>.xlsx (Excel) :</strong> Format Microsoft Excel avec les largeurs de colonnes preservees. Compatible avec Excel, Google Sheets, LibreOffice.</p>
+              <p><strong>.csv :</strong> Format texte avec separateurs virgule. Encodage UTF-8 avec BOM pour une compatibilite maximale. Les formules sont exportees avec leur valeur calculee.</p>
+            </div>
+          </section>
+
           {/* Raccourcis */}
           <section>
             <h3 className="text-base font-semibold text-gray-800 mb-3">Raccourcis clavier</h3>
@@ -233,10 +316,9 @@ export function HelpModal({ onClose }: HelpModalProps) {
           <section>
             <h3 className="text-base font-semibold text-gray-800 mb-2">Gestion de versions</h3>
             <p className="text-sm text-gray-600">
-              Utilisez le bouton <strong>Historique</strong> pour sauvegarder des snapshots
-              et restaurer un etat precedent. L'export au
-              format <code className="bg-gray-100 px-1 rounded text-xs">.cellium</code> inclut
-              la grille et tous les snapshots.
+              Utilise le bouton <strong>Historique</strong> pour sauvegarder des snapshots
+              et restaurer un etat precedent. Chaque snapshot capture l'integralite
+              de ton tableur : cellules, formules, zones, graphiques et styles de ligne.
             </p>
           </section>
 
