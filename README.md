@@ -2,6 +2,8 @@
 
 Cellium est un tableur web avec agent IA integre. L'application permet de creer des comptes, gerer plusieurs tableurs, manipuler des donnees dans une grille interactive, creer des formules et des graphiques, mettre en forme les tableaux, et piloter le tout en langage naturel grace a un agent Claude Code connecte directement dans l'interface.
 
+![Cellium](docs/screenshot.png)
+
 ## Architecture globale
 
 ```
