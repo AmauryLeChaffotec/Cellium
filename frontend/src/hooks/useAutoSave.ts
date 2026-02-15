@@ -43,7 +43,7 @@ export function useAutoSave() {
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
           if (cell.formula) {
-            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells, headers) };
           } else {
             cellsCopy[id] = cell;
           }

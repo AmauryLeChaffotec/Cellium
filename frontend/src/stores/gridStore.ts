@@ -69,7 +69,7 @@ function updateFormulaColShift(formula: string | undefined, refCol: number, isIn
 }
 
 /** Apply formula shift to all cells in a grid. */
-function applyFormulaShift(cells: Grid, shiftFn: (f: string | undefined) => string | undefined) {
+function applyFormulaShift(cells: Grid, shiftFn: (f: string | undefined) => string | undefined, headers?: string[]) {
   for (const cell of Object.values(cells)) {
     if (cell.formula) {
       const updated = shiftFn(cell.formula);
@@ -79,14 +79,14 @@ function applyFormulaShift(cells: Grid, shiftFn: (f: string | undefined) => stri
     }
   }
   // Re-evaluate all formulas so `value` holds the real result
-  reEvaluateFormulas(cells);
+  reEvaluateFormulas(cells, headers);
 }
 
 /** Re-evaluate every formula cell so its `value` holds the computed result. */
-function reEvaluateFormulas(cells: Grid) {
+function reEvaluateFormulas(cells: Grid, headers?: string[]) {
   for (const cell of Object.values(cells)) {
     if (cell.formula) {
-      cell.value = evaluateFormula(cell.formula, cells);
+      cell.value = evaluateFormula(cell.formula, cells, headers);
     }
   }
 }
@@ -130,7 +130,7 @@ interface GridActions {
   setCell: (
     id: string,
     value: string | number | null,
-    options?: { formula?: string; format?: CellFormat; name?: string }
+    options?: { formula?: string; format?: CellFormat; name?: string; description?: string }
   ) => void;
   startEditing: (id: string) => void;
   stopEditing: () => void;
@@ -186,7 +186,7 @@ export const useGridStore = create<GridState & GridActions>()(
 
     setCell: (id, value, options) =>
       set((state) => {
-        if ((value === null || value === '') && !options?.formula && !options?.format && !options?.name) {
+        if ((value === null || value === '') && !options?.formula && !options?.format && !options?.name && !options?.description) {
           delete state.cells[id];
         } else {
           state.cells[id] = {
@@ -195,10 +195,11 @@ export const useGridStore = create<GridState & GridActions>()(
             ...(options?.formula && { formula: options.formula }),
             ...(options?.format && { format: options.format }),
             ...(options?.name && { name: options.name }),
+            ...(options?.description && { description: options.description }),
           };
         }
         // Re-evaluate other formula cells that may depend on this cell
-        reEvaluateFormulas(state.cells);
+        reEvaluateFormulas(state.cells, state.headers);
       }),
 
     startEditing: (id) =>
@@ -427,7 +428,7 @@ export const useGridStore = create<GridState & GridActions>()(
             }
           }
           // Re-evaluate all formulas so `value` holds the real result
-          reEvaluateFormulas(state.cells);
+          reEvaluateFormulas(state.cells, state.headers);
         }
 
         state.zoneResizing = null;
@@ -447,7 +448,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
 
         // Update formula references in all cells
-        applyFormulaShift(newCells, (f) => updateFormulaRowShift(f, afterRow, true));
+        applyFormulaShift(newCells, (f) => updateFormulaRowShift(f, afterRow, true), state.headers);
 
         state.cells = newCells;
         state.rowCount += 1;
@@ -492,7 +493,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
 
         // Update formula references in all cells
-        applyFormulaShift(newCells, (f) => updateFormulaRowShift(f, targetRow, false));
+        applyFormulaShift(newCells, (f) => updateFormulaRowShift(f, targetRow, false), state.headers);
 
         state.cells = newCells;
         state.rowCount -= 1;
@@ -549,11 +550,20 @@ export const useGridStore = create<GridState & GridActions>()(
         }
 
         // Update formula references in all cells
-        applyFormulaShift(newCells, (f) => updateFormulaColShift(f, afterCol, true));
+        applyFormulaShift(newCells, (f) => updateFormulaColShift(f, afterCol, true), state.headers);
 
         state.cells = newCells;
         state.colCount += 1;
-        state.headers.splice(afterCol + 1, 0, columnIndexToLetter(state.colCount - 1));
+
+        // Generate unique "nouvelle colonne" name
+        const base = 'nouvelle colonne';
+        let newName = base;
+        let suffix = 1;
+        while (state.headers.includes(newName)) {
+          newName = `${base} ${suffix}`;
+          suffix++;
+        }
+        state.headers.splice(afterCol + 1, 0, newName);
         state.colWidths.splice(afterCol + 1, 0, DEFAULT_COL_WIDTH);
 
         // Update zone boundaries
@@ -595,7 +605,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
 
         // Update formula references in all cells
-        applyFormulaShift(newCells, (f) => updateFormulaColShift(f, targetCol, false));
+        applyFormulaShift(newCells, (f) => updateFormulaColShift(f, targetCol, false), state.headers);
 
         state.cells = newCells;
         state.colCount -= 1;
@@ -672,7 +682,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.activeZoneId = null;
         state.zoneResizing = null;
         // Evaluate all formulas so `value` holds the real result
-        reEvaluateFormulas(state.cells);
+        reEvaluateFormulas(state.cells, state.headers);
       }),
   }))
 );

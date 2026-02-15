@@ -41,28 +41,48 @@ Chaque cellule est identifiee par une lettre de colonne + un numero de ligne (ba
 
 La valeur peut etre un `string` ou un `number`.
 
-### Cellule avec nom (IMPORTANT)
+### Cellule avec nom et description (OBLIGATOIRE pour les formules)
 
-Une cellule peut avoir un champ `name` qui s'affiche comme label dans la cellule. Le nom apparait en petit au-dessus de la valeur. Cela permet de combiner un label et une valeur/formule dans une seule cellule.
+Chaque cellule de formule **DOIT** avoir un champ `name` et un champ `description` :
+- `name` : label court affiche dans la cellule, au-dessus de la valeur calculee
+- `description` : phrase explicative qui apparait au survol de la souris (tooltip)
+
+Cela permet de combiner un label et une valeur/formule dans une seule cellule. **Ne jamais utiliser une cellule separee pour le label.**
 
 ```json
 "B11": {
   "id": "B11",
   "value": "=SUM(B1:B10)",
   "formula": "=SUM(B1:B10)",
-  "name": "Total prix"
+  "name": "Total prix",
+  "description": "Somme de tous les prix de la zone produit (B1:B10)"
 }
 ```
 
 Affichage dans le navigateur :
 ```
 ┌──────────────┐
-│ Total prix   │  ← nom en petit gris
+│ Total prix   │  ← nom en petit (badge bleu)
 │ 125.70       │  ← valeur calculee
 └──────────────┘
+   ↑ au survol : "Somme de tous les prix de la zone produit (B1:B10)"
 ```
 
-**Utiliser `name` pour donner un label a une cellule de resultat.** Cela evite d'utiliser une cellule separee pour le label.
+**MAUVAIS** (formule sans name ni description) :
+```json
+"B11": { "id": "B11", "value": "=SUM(B1:B10)", "formula": "=SUM(B1:B10)" }
+```
+
+**BON** (formule avec name ET description) :
+```json
+"B11": {
+  "id": "B11",
+  "value": "=SUM(B1:B10)",
+  "formula": "=SUM(B1:B10)",
+  "name": "Total prix",
+  "description": "Somme de tous les prix de la zone produit (B1:B10)"
+}
+```
 
 ### Cellule avec formule (IMPORTANT)
 
@@ -83,9 +103,20 @@ Pour que la valeur se recalcule automatiquement quand les donnees changent, il f
 "B11": { "id": "B11", "value": 125.7 }
 ```
 
-**BON** (formule avec nom, se recalcule automatiquement) :
+**MAUVAIS** (formule sans name ni description) :
 ```json
-"B11": { "id": "B11", "value": "=SUM(B1:B10)", "formula": "=SUM(B1:B10)", "name": "Total prix" }
+"B11": { "id": "B11", "value": "=SUM(B1:B10)", "formula": "=SUM(B1:B10)" }
+```
+
+**BON** (formule avec name ET description, se recalcule automatiquement) :
+```json
+"B11": {
+  "id": "B11",
+  "value": "=SUM(B1:B10)",
+  "formula": "=SUM(B1:B10)",
+  "name": "Total prix",
+  "description": "Somme de tous les prix de la zone produit (B1:B10)"
+}
 ```
 
 ## Formules disponibles
@@ -139,7 +170,8 @@ Les colonnes avec des noms par defaut ("C", "D", ...) sont vides/inutilisees.
 ## Regles importantes
 
 1. **Toujours utiliser des formules** pour les calculs (totaux, moyennes, etc.), jamais des valeurs statiques
-2. **Un resultat = une seule cellule** avec un `name` pour le label. Ne pas utiliser une cellule pour le label et une autre pour la valeur
+2. **Un resultat = une seule cellule** avec `name` ET `description`. Ne pas utiliser une cellule pour le label et une autre pour la valeur
+3. **Toujours ajouter `name` et `description`** a chaque cellule de formule. Le `name` est un label court, la `description` explique ce que la formule calcule et sur quelle plage
 3. **Ne pas modifier** `rowCount`, `colCount`, `colWidths`, `rowHeights` sauf si on ajoute/supprime des lignes ou colonnes
 4. **Ne pas modifier les zones** sauf si l'utilisateur le demande
 5. **Ne pas toucher aux snapshots** sauf si l'utilisateur le demande
@@ -152,24 +184,27 @@ L'utilisateur demande : "Ajoute le total des prix et le nombre de produits"
 
 Zone existante : `A1:B10`, colonne A = produits, colonne B = prix.
 
-Cellule a ajouter (une seule cellule par resultat, avec `name` + `formula`) :
+Cellule a ajouter (une seule cellule par resultat, avec `name` + `description` + `formula`) :
 ```json
 "B11": {
   "id": "B11",
   "value": "=SUM(B1:B10)",
   "formula": "=SUM(B1:B10)",
-  "name": "Total prix"
+  "name": "Total prix",
+  "description": "Somme de tous les prix de la colonne B, lignes 1 a 10"
 },
 "B12": {
   "id": "B12",
   "value": "=COUNT(B1:B10)",
   "formula": "=COUNT(B1:B10)",
-  "name": "Nb produits"
+  "name": "Nb produits",
+  "description": "Nombre de produits avec un prix dans la colonne B, lignes 1 a 10"
 }
 ```
 
 Resultat affiche dans le navigateur :
-- B11 affichera "Total prix" en petit + la somme calculee (ex: 125.70)
-- B12 affichera "Nb produits" en petit + le nombre (ex: 10)
+- B11 affichera "Total prix" en petit + la somme calculee (ex: 125.70). Au survol : "Somme de tous les prix..."
+- B12 affichera "Nb produits" en petit + le nombre (ex: 10). Au survol : "Nombre de produits..."
 - Si on modifie un prix, les totaux se mettent a jour instantanement
 - Chaque resultat tient dans une seule cellule
+- L'utilisateur peut faire clic droit sur la cellule pour voir et modifier la formule

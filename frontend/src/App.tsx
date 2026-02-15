@@ -1,28 +1,25 @@
 import { useEffect, useState } from 'react';
-import { SpreadsheetGrid } from './components/Grid';
-import { DiffOverlay, ActionBar } from './components/Diff';
-import { VersionPanel } from './components/Version';
-import { AgentChat } from './components/Agent';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
-import { useVersionStore } from './stores/versionStore';
-import { initSession } from './utils/session';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuthStore } from './stores/authStore';
+import { AuthPage } from './pages/AuthPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { SpreadsheetPage } from './pages/SpreadsheetPage';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = useAuthStore((s) => s.token);
+  if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
 
 function App() {
-  const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
-  const [sessionReady, setSessionReady] = useState(false);
+  const { token, checkAuth } = useAuthStore();
+  const [checking, setChecking] = useState(true);
 
-  // Activate keyboard shortcuts (Escape, Ctrl+Enter)
-  useKeyboardShortcuts();
-
-  // Initialize session before loading anything
   useEffect(() => {
-    initSession().then(() => {
-      setSessionReady(true);
-      useVersionStore.getState().loadSnapshots();
-    });
+    checkAuth().finally(() => setChecking(false));
   }, []);
 
-  if (!sessionReady) {
+  if (checking) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <p className="text-gray-500">Chargement...</p>
@@ -31,24 +28,31 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <header className="border-b border-gray-200 px-4 py-2 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-gray-800">Cellium</h1>
-        <button
-          onClick={() => setIsVersionPanelOpen(!isVersionPanelOpen)}
-          className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-300"
-        >
-          Historique
-        </button>
-      </header>
-      <div className="relative">
-        <SpreadsheetGrid />
-        <DiffOverlay />
-      </div>
-      <ActionBar />
-      <VersionPanel isOpen={isVersionPanelOpen} onClose={() => setIsVersionPanelOpen(false)} />
-      <AgentChat />
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route
+          path="/login"
+          element={token ? <Navigate to="/" replace /> : <AuthPage />}
+        />
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/sheet/:id"
+          element={
+            <ProtectedRoute>
+              <SpreadsheetPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 

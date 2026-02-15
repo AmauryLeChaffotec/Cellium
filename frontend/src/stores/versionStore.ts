@@ -7,12 +7,13 @@ import { useGridStore } from './gridStore';
 import { saveGridData } from '../utils/persistence';
 import { exportCelliumFile, parseCelliumFile, readFileAsText } from '../utils/celliumFile';
 import { evaluateFormula } from '../utils/formulaEvaluator';
+import { generateUUID } from '../utils/uuid';
 
 /** Re-evaluate every formula cell in a grid so `value` holds the computed result. */
-function evaluateGridFormulas(cells: Grid): void {
+function evaluateGridFormulas(cells: Grid, headers?: string[]): void {
   for (const cell of Object.values(cells)) {
     if (cell.formula) {
-      cell.value = evaluateFormula(cell.formula, cells);
+      cell.value = evaluateFormula(cell.formula, cells, headers);
     }
   }
 }
@@ -43,14 +44,14 @@ export const useVersionStore = create<VersionStore>()(
       const cellsCopy: Grid = {};
       for (const [id, cell] of Object.entries(cells)) {
         if (cell.formula) {
-          cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+          cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells, headers) };
         } else {
           cellsCopy[id] = cell;
         }
       }
 
       const snapshot: Snapshot = {
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         timestamp: new Date().toISOString(),
         name,
         author,
@@ -96,7 +97,7 @@ export const useVersionStore = create<VersionStore>()(
                 break;
               }
             }
-            evaluateGridFormulas(snap.gridData.cells);
+            evaluateGridFormulas(snap.gridData.cells, snap.gridData.headers);
           }
         }
 
@@ -138,7 +139,7 @@ export const useVersionStore = create<VersionStore>()(
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
           if (cell.formula) {
-            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells, headers) };
           } else {
             cellsCopy[id] = cell;
           }
@@ -165,7 +166,7 @@ export const useVersionStore = create<VersionStore>()(
       const cellsCopy: Grid = {};
       for (const [id, cell] of Object.entries(cells)) {
         if (cell.formula) {
-          cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+          cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells, headers) };
         } else {
           cellsCopy[id] = cell;
         }
@@ -186,7 +187,7 @@ export const useVersionStore = create<VersionStore>()(
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
           if (cell.formula) {
-            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells) };
+            cellsCopy[id] = { ...cell, value: evaluateFormula(cell.formula, cells, headers) };
           } else {
             cellsCopy[id] = cell;
           }
@@ -196,7 +197,7 @@ export const useVersionStore = create<VersionStore>()(
         // Evaluate formulas in imported snapshots
         for (const snap of celliumData.snapshots) {
           if (snap.gridData?.cells) {
-            evaluateGridFormulas(snap.gridData.cells);
+            evaluateGridFormulas(snap.gridData.cells, snap.gridData.headers);
           }
         }
 

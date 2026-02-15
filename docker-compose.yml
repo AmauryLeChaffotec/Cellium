@@ -1,0 +1,24 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    volumes:
+      - cellium-data:/data
+      - /home/debian/.claude:/root/.claude
+    environment:
+      - JWT_SECRET=${JWT_SECRET:-changez-moi-en-production}
+      - DATA_DIR=/data
+    expose:
+      - "5001"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - backend
+
+volumes:
+  cellium-data:
+

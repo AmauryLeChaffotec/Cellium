@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Grid, useGridRef } from 'react-window';
 import { useGridStore } from '../../stores/gridStore';
-import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
+import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../../utils/cellUtils';
 import { getSelectionRows, isCellInRange, rangeToString } from '../../utils/rangeUtils';
 import { useKeyboardNav } from '../../hooks/useKeyboardNav';
 import { useAutoSave } from '../../hooks/useAutoSave';
@@ -10,7 +10,9 @@ import { VirtualCell } from './VirtualCell';
 import { ContextMenu } from './ContextMenu';
 import type { ContextMenuItem } from './ContextMenu';
 import { ZoneDialog } from './ZoneDialog';
+import { FormulaEditDialog } from './FormulaEditDialog';
 import type { Zone } from '../../types/zone';
+import { generateUUID } from '../../utils/uuid';
 
 interface ContextMenuState {
   x: number;
@@ -50,6 +52,7 @@ export function SpreadsheetGrid() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [showZoneDialog, setShowZoneDialog] = useState(false);
   const [editingZone, setEditingZone] = useState<Zone | null>(null);
+  const [editingFormulaCellId, setEditingFormulaCellId] = useState<string | null>(null);
   const rowDragRef = useRef<{ rowIndex: number; startY: number; startHeight: number } | null>(null);
 
   const hasRangeSelection = selectionStart && selectionEnd && selectionStart !== selectionEnd;
@@ -229,7 +232,7 @@ export function SpreadsheetGrid() {
     (name: string, description: string, color: string) => {
       if (!selectionStart || !selectionEnd) return;
       addZone({
-        id: crypto.randomUUID(),
+        id: generateUUID(),
         name,
         description,
         color,
@@ -305,6 +308,40 @@ export function SpreadsheetGrid() {
       });
 
       return items;
+    }
+
+    // Formula items (if the cell has a formula)
+    if (targetRow !== null && targetCol !== null) {
+      const cellId = coordsToCellId(targetRow, targetCol);
+      const cell = useGridStore.getState().cells[cellId];
+      if (cell?.formula) {
+        const currentHeaders = useGridStore.getState().headers;
+        const funcMatch = cell.formula.match(/^=(\w+)\(([A-Z])(\d+):([A-Z])(\d+)\)$/i);
+        let formulaDisplay: string;
+        if (funcMatch) {
+          const funcName = funcMatch[1].toUpperCase();
+          const col1 = funcMatch[2].toUpperCase().charCodeAt(0) - 65;
+          const row1 = funcMatch[3];
+          const col2 = funcMatch[4].toUpperCase().charCodeAt(0) - 65;
+          const row2 = funcMatch[5];
+          const colNames: string[] = [];
+          for (let c = Math.min(col1, col2); c <= Math.max(col1, col2); c++) {
+            colNames.push(currentHeaders[c] ?? columnIndexToLetter(c));
+          }
+          formulaDisplay = `${funcName}(${colNames.join(', ')}, lignes ${row1}-${row2})`;
+        } else {
+          formulaDisplay = cell.formula;
+        }
+        items.push({
+          label: `Formule : ${formulaDisplay}`,
+          action: () => {},
+        });
+        items.push({
+          label: 'Modifier la formule',
+          action: () => setEditingFormulaCellId(cellId),
+        });
+        items.push({ label: '', action: () => {}, separator: true });
+      }
     }
 
     // Zone items (if the cell belongs to a zone)
@@ -432,6 +469,14 @@ export function SpreadsheetGrid() {
           onConfirm={handleEditZone}
           onDelete={handleDeleteEditingZone}
           onCancel={() => setEditingZone(null)}
+        />
+      )}
+
+      {/* Formula edit dialog */}
+      {editingFormulaCellId && (
+        <FormulaEditDialog
+          cellId={editingFormulaCellId}
+          onClose={() => setEditingFormulaCellId(null)}
         />
       )}
     </div>

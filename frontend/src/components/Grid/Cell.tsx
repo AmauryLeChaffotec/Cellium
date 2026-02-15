@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useMemo } from 'react';
 import { useGridStore } from '../../stores/gridStore';
 import type { ZoneResizeHandle } from '../../stores/gridStore';
 import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
-import { evaluateFormula } from '../../utils/formulaEvaluator';
+import { evaluateFormula, resolveColumnNames, formulaToReadable } from '../../utils/formulaEvaluator';
 import { isCellInRange } from '../../utils/rangeUtils';
 
 // ── HandleDot: resize handle rendered at zone edges ──────────
@@ -70,7 +70,9 @@ export function Cell({ cellId }: CellProps) {
   const cellValue = cell?.value ?? null;
   const cellFormula = cell?.formula;
   const cellName = cell?.name;
+  const cellDescription = cell?.description;
   const allCells = useGridStore((s) => s.cells);
+  const headers = useGridStore((s) => s.headers);
   const isEditing = useGridStore((s) => s.editingCell === cellId);
   const isSelected = useGridStore((s) => s.selectedCell === cellId);
   const setCell = useGridStore((s) => s.setCell);
@@ -154,7 +156,11 @@ export function Cell({ cellId }: CellProps) {
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
-      const editValue = cellFormula || (cellValue !== null ? String(cellValue) : '');
+      // Show formula with column names when editing
+      const rawFormula = cellFormula || (cellValue !== null ? String(cellValue) : '');
+      const editValue = rawFormula.startsWith('=')
+        ? formulaToReadable(rawFormula, useGridStore.getState().headers)
+        : rawFormula;
       setInputValue(editValue);
       inputRef.current.focus();
     }
@@ -162,9 +168,12 @@ export function Cell({ cellId }: CellProps) {
 
   const handleSave = () => {
     if (inputValue.startsWith('=')) {
+      const currentHeaders = useGridStore.getState().headers;
       const currentCells = useGridStore.getState().cells;
-      const evaluated = evaluateFormula(inputValue, currentCells);
-      setCell(cellId, evaluated, { formula: inputValue });
+      // Resolve column names (e.g. Population1 → B1) before storing
+      const resolvedFormula = resolveColumnNames(inputValue, currentHeaders);
+      const evaluated = evaluateFormula(resolvedFormula, currentCells, currentHeaders);
+      setCell(cellId, evaluated, { formula: resolvedFormula });
     } else {
       const parsed = parseValue(inputValue);
       setCell(cellId, parsed === '' ? null : parsed);
@@ -236,7 +245,7 @@ export function Cell({ cellId }: CellProps) {
 
   const displayValue = (() => {
     if (cellFormula) {
-      const result = evaluateFormula(cellFormula, allCells);
+      const result = evaluateFormula(cellFormula, allCells, headers);
       return result !== null ? String(result) : '';
     }
     return cellValue !== null ? String(cellValue) : '';
@@ -261,9 +270,11 @@ export function Cell({ cellId }: CellProps) {
     if (activeZoneEdges.isRight)  { borderStyle.borderRightWidth = 2; borderStyle.borderRightStyle = 'solid'; borderStyle.borderRightColor = c; }
   }
 
-  const tooltip = zoneInfo
-    ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
-    : undefined;
+  const tooltip = cellDescription
+    ? cellDescription
+    : zoneInfo
+      ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
+      : undefined;
 
   return (
     <div

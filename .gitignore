@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+frontend/dist/
+backend/venv/
+backend/__pycache__/
+*.pyc
+
+# Environment variables
+.env
+backend/.env
+frontend/.env
+
+# Database & user data
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# macOS resource forks
+._*
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

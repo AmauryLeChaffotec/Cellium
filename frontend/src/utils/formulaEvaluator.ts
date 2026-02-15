@@ -1,25 +1,75 @@
 /**
  * Simple formula evaluator for spreadsheet formulas
  * Supports basic functions like SUM, AVERAGE, MIN, MAX
+ * Supports column names in formulas (e.g., "=SUM(Population1:Population66)")
  */
 
 import type { Grid } from '../types/cell';
 import { cellIdToCoords } from './cellUtils';
 
 /**
+ * Resolve column names in a formula to column letters.
+ * e.g. "=MIN(Population1:Population66)" → "=MIN(B1:B66)" if headers[1] === "Population"
+ */
+export function resolveColumnNames(formula: string, headers: string[]): string {
+  if (!formula || !formula.startsWith('=')) return formula;
+
+  // Build name → letter map (longest names first to avoid partial matches)
+  const entries: { name: string; letter: string }[] = [];
+  for (let i = 0; i < headers.length; i++) {
+    const h = headers[i];
+    // Skip default single-letter headers (A, B, C…)
+    if (h.length === 1 && h >= 'A' && h <= 'Z') continue;
+    entries.push({ name: h, letter: String.fromCharCode(65 + i) });
+  }
+  // Sort longest first
+  entries.sort((a, b) => b.name.length - a.name.length);
+
+  let result = formula;
+  for (const { name, letter } of entries) {
+    // Escape regex special chars in name, then match name followed by digits
+    const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped + '(\\d+)', 'gi');
+    result = result.replace(regex, letter + '$1');
+  }
+  return result;
+}
+
+/**
+ * Convert a formula from column letters to column names for display.
+ * e.g. "=MIN(B1:B66)" → "=MIN(Population1:Population66)" if headers[1] === "Population"
+ */
+export function formulaToReadable(formula: string, headers: string[]): string {
+  if (!formula || !formula.startsWith('=')) return formula;
+
+  return formula.replace(/([A-Z])(\d+)/g, (_match, letter: string, row: string) => {
+    const colIndex = letter.charCodeAt(0) - 65;
+    const headerName = headers[colIndex];
+    if (headerName && headerName !== letter) {
+      return headerName + row;
+    }
+    return _match;
+  });
+}
+
+/**
  * Evaluate a formula and return the result
- * @param formula - The formula string (e.g., "=SUM(A1:A10)")
+ * @param formula - The formula string (e.g., "=SUM(A1:A10)" or "=SUM(Population1:Population10)")
  * @param cells - The current grid cells
+ * @param headers - Optional column headers for resolving column names
  * @returns The evaluated result or the formula string if evaluation fails
  */
-export function evaluateFormula(formula: string, cells: Grid): string | number {
+export function evaluateFormula(formula: string, cells: Grid, headers?: string[]): string | number {
   if (!formula || !formula.startsWith('=')) {
     return formula;
   }
 
   try {
+    // Resolve column names to letters if headers are provided
+    const resolved = headers ? resolveColumnNames(formula, headers) : formula;
+
     // Remove the leading '='
-    const expression = formula.substring(1);
+    const expression = resolved.substring(1);
 
     // Handle AVERAGE function
     if (expression.match(/^AVERAGE\(/i)) {

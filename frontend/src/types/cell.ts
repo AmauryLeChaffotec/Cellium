@@ -10,6 +10,7 @@ export interface Cell {
   formula?: string;
   format?: CellFormat;
   name?: string;
+  description?: string;
 }
 
 export type Grid = Record<string, Cell>;
