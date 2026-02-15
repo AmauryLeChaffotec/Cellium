@@ -43,11 +43,15 @@ Cellium est un tableur collaboratif web avec un agent IA integre. L'application 
 
 | Composant | Technologie |
 |-----------|-------------|
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS |
+| Frontend | React 19, TypeScript, Vite 7, Tailwind CSS 4 |
 | Etat global | Zustand (avec middleware Immer) |
 | Grille virtualisee | react-window |
 | Backend | Flask (Python), Flask-CORS |
-| Persistance | Fichiers JSON par session |
+| Graphiques | Recharts |
+| Export | xlsx (SheetJS) |
+| Authentification | JWT + bcrypt |
+| Persistance | SQLite (users) + fichiers JSON (sessions) |
+| Deploiement | Docker Compose (Gunicorn + Nginx) |
 | Agent IA | Claude Code CLI (subprocess) |
 | Tests | Vitest + Testing Library (frontend), pytest (backend) |
 
@@ -62,14 +66,16 @@ cellium/
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Grid/           # Grille : SpreadsheetGrid, Cell, ContextMenu, ZoneDialog
+│   │   │   ├── Grid/           # Grille : SpreadsheetGrid, Cell, ChartOverlay, ChartDialog, ZoneDialog
 │   │   │   ├── Agent/          # Chat IA : AgentChat
 │   │   │   ├── Version/        # Historique : VersionPanel, VersionItem
-│   │   │   └── Diff/           # Comparaison de versions
+│   │   │   ├── Diff/           # Comparaison de versions
+│   │   │   └── HelpModal.tsx   # Aide integree
 │   │   ├── stores/
-│   │   │   ├── gridStore.ts    # Etat de la grille (cellules, zones, selection)
+│   │   │   ├── gridStore.ts    # Etat de la grille (cellules, zones, charts, selection)
 │   │   │   ├── versionStore.ts # Snapshots et import/export
 │   │   │   ├── agentStore.ts   # Chat avec l'agent IA
+│   │   │   ├── authStore.ts    # Authentification JWT
 │   │   │   └── diffStore.ts    # Comparaison de versions
 │   │   ├── hooks/
 │   │   │   ├── useAutoSave.ts  # Sauvegarde auto + polling des modifications externes
@@ -82,12 +88,19 @@ cellium/
 │   │   │   ├── rangeUtils.ts        # Selection multi-cellules
 │   │   │   └── session.ts           # Gestion des sessions
 │   │   └── types/
+│   │       ├── cell.ts         # CellData, ColumnType, RowStyle
+│   │       ├── chart.ts        # Chart, ChartType
+│   │       └── zone.ts         # Zone
 │   ├── package.json
 │   └── vite.config.ts
 ├── data/
+│   ├── cellium.db              # Base SQLite (utilisateurs)
 │   └── sessions/               # Un dossier par session
 │       └── {uuid}/
 │           └── spreadsheet.json
+├── docs/
+│   └── DEPLOY.md               # Guide de deploiement VPS Debian
+├── docker-compose.yml
 ├── AGENT_GUIDE.md              # Instructions pour l'agent IA
 └── README.md
 ```
@@ -150,6 +163,8 @@ Aller sur `http://localhost:5173` dans le navigateur.
 - Redimensionnement des colonnes et des lignes par drag
 - En-tetes de colonnes personnalisables (clic pour renommer)
 - Navigation au clavier (fleches, Tab, Shift+Tab)
+- Copier/coller (Ctrl+C / Ctrl+V)
+- Insertion / suppression de lignes et colonnes (clic droit)
 
 ### Formules
 
@@ -217,6 +232,53 @@ Une cellule avec formule peut avoir un **nom** (`name`) affiche comme label et u
 | `=VLOOKUP(valeur, A1:C10, 3)` | Recherche verticale |
 | `=HLOOKUP(valeur, A1:Z3, 2)` | Recherche horizontale |
 
+### Types de colonnes
+
+Clic droit sur l'en-tete d'une colonne pour definir son type d'affichage :
+
+| Type | Affichage |
+|------|-----------|
+| Texte | Texte brut |
+| Nombre | Alignement a droite |
+| Devise | `1 500,00 EUR` |
+| Pourcentage | `75 %` |
+| Date | Format date |
+| Booleen | Case a cocher |
+
+### Styles de lignes
+
+Clic droit sur un numero de ligne pour appliquer un style :
+
+- **Titre de section** : texte gros et gras sur toute la largeur, ideal pour structurer le tableau en sections
+- **Separateur** : ligne vide de separation visuelle
+- **Couleur de fond** : colorer une ligne avec une couleur personnalisee
+
+Les titres de section concatenent automatiquement toutes les valeurs des cellules de la ligne pour former un titre unique.
+
+### Graphiques
+
+Creer des graphiques flottants a partir d'une selection de cellules (clic droit sur une selection > "Creer un graphique") :
+
+| Type | Description |
+|------|-------------|
+| Barres | Comparer des valeurs |
+| Ligne | Tendances et evolution |
+| Camembert | Repartition et proportions |
+| Aire | Volume et accumulation |
+
+Les graphiques sont :
+- **Draggables** : deplacer en cliquant sur la barre de titre
+- **Redimensionnables** : tirer le coin en bas a droite
+- **Reactifs** : se mettent a jour automatiquement quand les donnees changent
+- **Editables** : modifier le nom, le type ou la plage via le bouton engrenage
+- **Persistants** : sauvegardes avec le reste du tableur
+
+### Export
+
+Exporter le tableur via le menu :
+- **XLSX** (Excel) — conserve les valeurs calculees des formules
+- **CSV** — format texte universel
+
 ### Selection multi-cellules et zones nommees
 
 - **Selection** : clic + glisser pour selectionner un rectangle de cellules
@@ -226,8 +288,9 @@ Une cellule avec formule peut avoir un **nom** (`name`) affiche comme label et u
 
 ### Gestion de versions
 
-- **Creer un snapshot** : sauvegarde l'etat complet de la grille (cellules, zones, tailles, headers)
+- **Creer un snapshot** : sauvegarde l'etat complet de la grille (cellules, zones, graphiques, styles, tailles, headers)
 - **Restaurer** : revenir a un etat precedent
+- **Comparer** : voir les differences entre deux versions (diff visuel)
 - **Supprimer** : effacer un snapshot
 - **Export/Import** : fichier `.cellium` contenant la grille + tous les snapshots
 
@@ -301,6 +364,9 @@ Ce fichier est le **cerveau** de l'integration. Il enseigne a l'agent :
 - La regle d'or : **toujours utiliser des formules**, jamais des valeurs statiques
 - Comment combiner un label (`name`) et une formule dans une seule cellule
 - Ou placer les resultats (en dehors des zones existantes)
+- Comment creer des styles de lignes (titres de section, separateurs, couleurs)
+- Comment definir les types de colonnes (devise, pourcentage, etc.)
+- Comment creer des graphiques (barres, ligne, camembert, aire)
 - Ce qu'il ne doit pas toucher (snapshots, rowCount, colWidths, etc.)
 
 Sans ce guide, l'agent pourrait ecrire des valeurs statiques, utiliser deux cellules pour un resultat, ou corrompre la structure du fichier.
@@ -313,15 +379,36 @@ Dans le chat de l'application :
 - "Calcule la moyenne des prix" → `=AVERAGE(B1:B10)` avec le nom "Prix moyen"
 - "Quel est le produit le plus cher ?" → l'agent lit les donnees et repond
 - "Ajoute une colonne categorie avec les valeurs Plat, Poisson, Salade..." → l'agent modifie le JSON
+- "Mets la ligne 1 en titre de section" → l'agent ajoute un style `header` a la ligne
+- "Mets la colonne prix en euros" → l'agent definit le type `currency`
+- "Cree un graphique en barres des ventes" → l'agent ajoute un graphique avec la bonne plage
 
-## Sessions
+### Authentification
 
-Chaque utilisateur obtient une **session unique** (UUID v4) stockee dans `localStorage`. Les donnees sont isolees dans `data/sessions/{uuid}/spreadsheet.json`. Cela permet a plusieurs utilisateurs d'utiliser l'application simultanement sans conflit.
+Systeme d'inscription / connexion avec JWT :
+- Inscription avec nom d'utilisateur et mot de passe (hache avec bcrypt)
+- Connexion avec token JWT (valide 72h)
+- Chaque utilisateur a ses propres sessions de tableur
+- Base de donnees SQLite pour les utilisateurs
+
+### Sessions
+
+Chaque utilisateur peut creer plusieurs sessions de tableur. Les donnees sont isolees dans `data/sessions/{uuid}/spreadsheet.json`. Cela permet a plusieurs utilisateurs d'utiliser l'application simultanement sans conflit.
+
+### Aide integree
+
+Modal d'aide accessible depuis l'interface avec :
+- Guide de prise en main rapide
+- Documentation des formules
+- Documentation des graphiques, styles, types de colonnes, export
+- Raccourcis clavier
 
 ## API Backend
 
 | Methode | Route | Description |
 |---------|-------|-------------|
+| POST | `/api/auth/register` | Inscription (username, password) |
+| POST | `/api/auth/login` | Connexion (retourne un token JWT) |
 | POST | `/api/session` | Creer une nouvelle session |
 | GET | `/api/session/:id` | Verifier qu'une session existe |
 | GET | `/api/data` | Lire les donnees de la session |
@@ -330,7 +417,7 @@ Chaque utilisateur obtient une **session unique** (UUID v4) stockee dans `localS
 | GET | `/api/data/lastmod` | Timestamp de derniere modification |
 | POST | `/api/agent/chat` | Envoyer un message a l'agent IA |
 
-Toutes les routes (sauf `/api/session` POST et `/api/health`) necessitent le header `X-Session-Id`.
+Les routes d'authentification sont publiques. Les autres routes necessitent un token JWT (header `Authorization: Bearer <token>`) et le header `X-Session-Id`.
 
 ## Developpement
 
@@ -355,3 +442,17 @@ npm run build     # Output dans frontend/dist/
 cd frontend
 npx tsc --noEmit
 ```
+
+## Deploiement Docker
+
+```bash
+# Creer un fichier .env avec un secret JWT
+echo "JWT_SECRET=$(openssl rand -hex 32)" > .env
+
+# Construire et lancer
+docker compose up -d --build
+```
+
+L'application est accessible sur le port 8080. Les donnees sont persistees dans un volume Docker.
+
+Voir [docs/DEPLOY.md](docs/DEPLOY.md) pour un guide complet de deploiement sur VPS Debian (HTTPS, sauvegardes, pare-feu).
