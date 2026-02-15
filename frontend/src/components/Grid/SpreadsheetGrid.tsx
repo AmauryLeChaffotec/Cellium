@@ -483,11 +483,10 @@ export function SpreadsheetGrid() {
       ref={containerRef}
       tabIndex={0}
       data-grid-container
-      className="outline-none grid"
+      className="outline-none grid h-full"
       style={{
         gridTemplateColumns: '40px 1fr',
         gridTemplateRows: '32px 1fr',
-        height: 'calc(100vh - 49px)',
       }}
       onContextMenu={handleContextMenu}
       onMouseUp={handleMouseUp}

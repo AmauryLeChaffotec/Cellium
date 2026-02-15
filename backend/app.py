@@ -28,7 +28,7 @@ JWT_SECRET = os.environ.get("JWT_SECRET", "cellium-dev-secret-change-in-prod")
 JWT_EXPIRATION_HOURS = 72
 
 SESSIONS_DIR = os.path.join(DATA_DIR, "sessions")
-DEFAULT_DATA = {"grid": {"cells": {}, "rowCount": 100, "colCount": 26}, "snapshots": []}
+DEFAULT_DATA = {"grid": {"cells": {}, "rowCount": 100, "colCount": 26, "sheets": [{"name": "Feuille 1", "grid": {"cells": {}, "rowCount": 100, "colCount": 26, "headers": [], "colWidths": [], "rowHeights": [], "columnTypes": [], "rowStyles": [], "zones": [], "charts": []}}], "activeSheetIndex": 0}, "snapshots": []}
 UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
 
 # ── Agent (Claude Code CLI) ───────────────────────────────────────

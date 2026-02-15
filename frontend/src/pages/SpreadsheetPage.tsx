@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { SpreadsheetGrid } from '../components/Grid';
+import { SheetTabs } from '../components/Grid/SheetTabs';
 import { DiffOverlay, ActionBar } from '../components/Diff';
 import { VersionPanel } from '../components/Version';
 import { AgentChat } from '../components/Agent';
@@ -47,7 +48,7 @@ export function SpreadsheetPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       {/* Toolbar */}
       <header className="bg-white border-b border-gray-200/80 px-3 py-1.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
@@ -129,10 +130,11 @@ export function SpreadsheetPage() {
         </div>
       </header>
 
-      <div className="relative flex-1">
+      <div className="relative flex-1 min-h-0">
         <SpreadsheetGrid />
         <DiffOverlay />
       </div>
+      <SheetTabs />
       <ActionBar />
       <VersionPanel isOpen={isVersionPanelOpen} onClose={() => setIsVersionPanelOpen(false)} />
       <AgentChat />

@@ -38,7 +38,9 @@ export function useAutoSave() {
     const saveInterval = setInterval(async () => {
       if (dirtyRef.current && !savingRef.current) {
         savingRef.current = true;
-        const { cells, rowCount, colCount, headers, colWidths, rowHeights, columnTypes, rowStyles, zones, charts } = useGridStore.getState();
+        // Sync active sheet into sheets array before saving
+        useGridStore.getState().syncActiveSheet();
+        const { cells, rowCount, colCount, headers, colWidths, rowHeights, columnTypes, rowStyles, zones, charts, sheets, activeSheetIndex } = useGridStore.getState();
         // Ensure all formula cells have their evaluated value before saving
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
@@ -48,7 +50,7 @@ export function useAutoSave() {
             cellsCopy[id] = cell;
           }
         }
-        await saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, columnTypes, rowStyles, zones, charts });
+        await saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, columnTypes, rowStyles, zones, charts, sheets, activeSheetIndex });
         dirtyRef.current = false;
         // Update lastmod after our own save so polling doesn't trigger a reload
         const t = await getLastModified();

@@ -3,6 +3,7 @@ import { immer } from 'zustand/middleware/immer';
 import type { Grid, CellFormat, ColumnType, RowStyle } from '../types/cell';
 import type { Zone } from '../types/zone';
 import type { Chart } from '../types/chart';
+import type { Sheet, SheetGrid } from '../types/sheet';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
 import { normalizeRange } from '../utils/rangeUtils';
@@ -112,6 +113,64 @@ function defaultRowStyles(count: number): (RowStyle | null)[] {
   return new Array(count).fill(null);
 }
 
+function captureGrid(state: GridState): SheetGrid {
+  const cells: Grid = {};
+  for (const [id, cell] of Object.entries(state.cells)) {
+    cells[id] = { ...cell };
+  }
+  return {
+    cells,
+    rowCount: state.rowCount,
+    colCount: state.colCount,
+    headers: [...state.headers],
+    colWidths: [...state.colWidths],
+    rowHeights: [...state.rowHeights],
+    columnTypes: [...state.columnTypes],
+    rowStyles: [...state.rowStyles],
+    zones: state.zones.map(z => ({ ...z })),
+    charts: state.charts.map(c => ({ ...c })),
+  };
+}
+
+function loadSheetGrid(state: GridState, grid: SheetGrid) {
+  const freshCells: Grid = {};
+  for (const [id, cell] of Object.entries(grid.cells)) {
+    freshCells[id] = { ...cell };
+  }
+  state.cells = freshCells;
+  state.rowCount = grid.rowCount;
+  state.colCount = grid.colCount;
+  state.headers = grid.headers?.length ? grid.headers : defaultHeaders(grid.colCount);
+  state.colWidths = grid.colWidths?.length ? grid.colWidths : defaultColWidths(grid.colCount);
+  state.rowHeights = grid.rowHeights?.length ? grid.rowHeights : defaultRowHeights(grid.rowCount);
+  state.columnTypes = grid.columnTypes?.length ? grid.columnTypes : defaultColumnTypes(grid.colCount);
+  state.rowStyles = grid.rowStyles?.length ? grid.rowStyles : defaultRowStyles(grid.rowCount);
+  state.zones = grid.zones ?? [];
+  state.charts = grid.charts ?? [];
+  state.editingCell = null;
+  state.selectedCell = null;
+  state.selectionStart = null;
+  state.selectionEnd = null;
+  state.activeZoneId = null;
+  state.zoneResizing = null;
+  reEvaluateFormulas(state.cells, state.headers);
+}
+
+function makeEmptySheetGrid(rows: number, cols: number): SheetGrid {
+  return {
+    cells: {},
+    rowCount: rows,
+    colCount: cols,
+    headers: defaultHeaders(cols),
+    colWidths: defaultColWidths(cols),
+    rowHeights: defaultRowHeights(rows),
+    columnTypes: defaultColumnTypes(cols),
+    rowStyles: defaultRowStyles(rows),
+    zones: [],
+    charts: [],
+  };
+}
+
 interface GridState {
   cells: Grid;
   rowCount: number;
@@ -123,6 +182,8 @@ interface GridState {
   rowStyles: (RowStyle | null)[];
   zones: Zone[];
   charts: Chart[];
+  sheets: Sheet[];
+  activeSheetIndex: number;
   editingCell: string | null;
   selectedCell: string | null;
   selectionStart: string | null;
@@ -170,6 +231,12 @@ interface GridActions {
   addChart: (chart: Chart) => void;
   updateChart: (chartId: string, updates: Partial<Omit<Chart, 'id'>>) => void;
   deleteChart: (chartId: string) => void;
+  switchSheet: (index: number) => void;
+  addSheet: (name?: string) => void;
+  deleteSheet: (index: number) => void;
+  renameSheet: (index: number, name: string) => void;
+  duplicateSheet: (index: number) => void;
+  syncActiveSheet: () => void;
   loadGrid: (data: GridPersistData) => void;
 }
 
@@ -185,6 +252,8 @@ export const useGridStore = create<GridState & GridActions>()(
     rowStyles: defaultRowStyles(100),
     zones: [],
     charts: [],
+    sheets: [{ name: 'Feuille 1', grid: makeEmptySheetGrid(100, 26) }],
+    activeSheetIndex: 0,
     editingCell: null,
     selectedCell: null,
     selectionStart: null,
@@ -205,6 +274,8 @@ export const useGridStore = create<GridState & GridActions>()(
         state.rowStyles = defaultRowStyles(rows);
         state.zones = [];
         state.charts = [];
+        state.sheets = [{ name: 'Feuille 1', grid: makeEmptySheetGrid(rows, cols) }];
+        state.activeSheetIndex = 0;
       }),
 
     setCell: (id, value, options) =>
@@ -729,31 +800,97 @@ export const useGridStore = create<GridState & GridActions>()(
         state.charts = state.charts.filter((c) => c.id !== chartId);
       }),
 
+    switchSheet: (index) =>
+      set((state) => {
+        if (index === state.activeSheetIndex || index < 0 || index >= state.sheets.length) return;
+        // Save current grid into active sheet
+        state.sheets[state.activeSheetIndex] = { ...state.sheets[state.activeSheetIndex], grid: captureGrid(state) };
+        // Load new sheet
+        state.activeSheetIndex = index;
+        loadSheetGrid(state, state.sheets[index].grid);
+      }),
+
+    addSheet: (name) =>
+      set((state) => {
+        // Save current grid
+        state.sheets[state.activeSheetIndex] = { ...state.sheets[state.activeSheetIndex], grid: captureGrid(state) };
+        const sheetName = name || `Feuille ${state.sheets.length + 1}`;
+        const newSheet: Sheet = { name: sheetName, grid: makeEmptySheetGrid(100, 26) };
+        state.sheets.push(newSheet);
+        state.activeSheetIndex = state.sheets.length - 1;
+        loadSheetGrid(state, newSheet.grid);
+      }),
+
+    deleteSheet: (index) =>
+      set((state) => {
+        if (state.sheets.length <= 1) return;
+        state.sheets.splice(index, 1);
+        if (state.activeSheetIndex >= state.sheets.length) {
+          state.activeSheetIndex = state.sheets.length - 1;
+        } else if (index < state.activeSheetIndex) {
+          state.activeSheetIndex -= 1;
+        } else if (index === state.activeSheetIndex) {
+          // Active sheet was deleted, load the sheet at the new activeSheetIndex
+          state.activeSheetIndex = Math.min(state.activeSheetIndex, state.sheets.length - 1);
+        }
+        loadSheetGrid(state, state.sheets[state.activeSheetIndex].grid);
+      }),
+
+    renameSheet: (index, name) =>
+      set((state) => {
+        if (index >= 0 && index < state.sheets.length) {
+          state.sheets[index] = { ...state.sheets[index], name };
+        }
+      }),
+
+    duplicateSheet: (index) =>
+      set((state) => {
+        if (index < 0 || index >= state.sheets.length) return;
+        // Save current grid first
+        state.sheets[state.activeSheetIndex] = { ...state.sheets[state.activeSheetIndex], grid: captureGrid(state) };
+        const source = state.sheets[index];
+        // Deep clone the grid
+        const clonedGrid = JSON.parse(JSON.stringify(source.grid)) as SheetGrid;
+        const newSheet: Sheet = { name: `${source.name} (copie)`, grid: clonedGrid };
+        state.sheets.splice(index + 1, 0, newSheet);
+        state.activeSheetIndex = index + 1;
+        loadSheetGrid(state, newSheet.grid);
+      }),
+
+    syncActiveSheet: () =>
+      set((state) => {
+        state.sheets[state.activeSheetIndex] = { ...state.sheets[state.activeSheetIndex], grid: captureGrid(state) };
+      }),
+
     loadGrid: (data) =>
       set((state) => {
-        // Deep-clone cells to avoid mutating frozen Immer objects (e.g. from snapshot restore)
-        const freshCells: Grid = {};
-        for (const [id, cell] of Object.entries(data.cells)) {
-          freshCells[id] = { ...cell };
+        // Load sheets if present (new format), otherwise create single sheet from root grid
+        if (data.sheets && data.sheets.length > 0) {
+          state.sheets = data.sheets.map(s => ({
+            name: s.name,
+            grid: JSON.parse(JSON.stringify(s.grid)) as SheetGrid,
+          }));
+          state.activeSheetIndex = data.activeSheetIndex ?? 0;
+          if (state.activeSheetIndex >= state.sheets.length) state.activeSheetIndex = 0;
+        } else {
+          // Retro-compatibility: create single sheet from root grid data
+          const grid: SheetGrid = {
+            cells: data.cells,
+            rowCount: data.rowCount,
+            colCount: data.colCount,
+            headers: data.headers?.length ? data.headers : defaultHeaders(data.colCount),
+            colWidths: data.colWidths?.length ? data.colWidths : defaultColWidths(data.colCount),
+            rowHeights: data.rowHeights?.length ? data.rowHeights : defaultRowHeights(data.rowCount),
+            columnTypes: data.columnTypes?.length ? data.columnTypes : defaultColumnTypes(data.colCount),
+            rowStyles: data.rowStyles?.length ? data.rowStyles : defaultRowStyles(data.rowCount),
+            zones: data.zones ?? [],
+            charts: data.charts ?? [],
+          };
+          state.sheets = [{ name: 'Feuille 1', grid: JSON.parse(JSON.stringify(grid)) as SheetGrid }];
+          state.activeSheetIndex = 0;
         }
-        state.cells = freshCells;
-        state.rowCount = data.rowCount;
-        state.colCount = data.colCount;
-        state.headers = data.headers ?? defaultHeaders(data.colCount);
-        state.colWidths = data.colWidths ?? defaultColWidths(data.colCount);
-        state.rowHeights = data.rowHeights ?? defaultRowHeights(data.rowCount);
-        state.columnTypes = data.columnTypes ?? defaultColumnTypes(data.colCount);
-        state.rowStyles = data.rowStyles ?? defaultRowStyles(data.rowCount);
-        state.zones = data.zones ?? [];
-        state.charts = data.charts ?? [];
-        state.editingCell = null;
-        state.selectedCell = null;
-        state.selectionStart = null;
-        state.selectionEnd = null;
-        state.activeZoneId = null;
-        state.zoneResizing = null;
-        // Evaluate all formulas so `value` holds the real result
-        reEvaluateFormulas(state.cells, state.headers);
+        // Load active sheet into the flat state
+        loadSheetGrid(state, state.sheets[state.activeSheetIndex].grid);
       }),
   }))
 );

@@ -23,7 +23,18 @@ data/sessions/{sessionId}/spreadsheet.json
     "columnTypes": ["none", "none", "number", ...],
     "rowStyles": [null, null, { "type": "header" }, ...],
     "zones": [ ... ],
-    "charts": [ ... ]
+    "charts": [ ... ],
+    "sheets": [
+      {
+        "name": "Feuille 1",
+        "grid": { "cells": { ... }, "rowCount": 100, "colCount": 26, "headers": [...], "colWidths": [...], "rowHeights": [...], "columnTypes": [...], "rowStyles": [...], "zones": [...], "charts": [...] }
+      },
+      {
+        "name": "Feuille 2",
+        "grid": { ... }
+      }
+    ],
+    "activeSheetIndex": 0
   },
   "snapshots": [ ... ]
 }
@@ -393,6 +404,50 @@ Ajouter un objet au tableau `charts` dans le fichier :
 - Positionner le graphique a droite ou en dessous des donnees pour ne pas cacher le tableur (`left` > 500)
 - Le camembert (`"pie"`) n'utilise que la premiere serie de donnees
 - Les formules dans les cellules de la plage sont evaluees automatiquement
+
+## Feuilles multiples (sheets)
+
+Un tableur peut contenir plusieurs feuilles (onglets), comme Excel. Chaque feuille a son propre jeu de cellules, en-tetes, zones, graphiques, etc.
+
+### Structure
+
+Le tableau `sheets` se trouve dans `grid` et contient toutes les feuilles. Le champ `activeSheetIndex` indique quelle feuille est actuellement affichee.
+
+```json
+"sheets": [
+  {
+    "name": "Feuille 1",
+    "grid": {
+      "cells": { ... },
+      "rowCount": 100,
+      "colCount": 26,
+      "headers": [...],
+      "colWidths": [...],
+      "rowHeights": [...],
+      "columnTypes": [...],
+      "rowStyles": [...],
+      "zones": [...],
+      "charts": [...]
+    }
+  },
+  {
+    "name": "Feuille 2",
+    "grid": { ... }
+  }
+],
+"activeSheetIndex": 0
+```
+
+### Comment modifier les feuilles
+
+- **Par defaut**, modifier la feuille active : `sheets[activeSheetIndex]`. Les champs root (`cells`, `headers`, etc.) dans `grid` correspondent toujours a la feuille active.
+- **Pour modifier une feuille specifique**, acceder a `sheets[index].grid.cells`, `sheets[index].grid.headers`, etc.
+- **Pour ajouter une feuille**, ajouter un objet dans le tableau `sheets` avec un `name` et un `grid` contenant une grille vide.
+- **Les formules ne sont PAS cross-sheet** : chaque feuille est independante.
+
+### Retro-compatibilite
+
+Si le fichier n'a pas de champ `sheets`, le frontend cree automatiquement une feuille "Feuille 1" a partir des donnees root. Pas besoin de migration manuelle.
 
 ## Regles importantes
 

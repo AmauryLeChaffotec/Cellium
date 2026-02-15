@@ -38,7 +38,9 @@ export const useVersionStore = create<VersionStore>()(
     isRestoring: false,
 
     createSnapshot: (name, author) => {
-      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
+      // Sync active sheet before snapshot
+      useGridStore.getState().syncActiveSheet();
+      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex } = useGridStore.getState();
 
       // Ensure formula cells have their evaluated value in the snapshot
       const cellsCopy: Grid = {};
@@ -55,7 +57,7 @@ export const useVersionStore = create<VersionStore>()(
         timestamp: new Date().toISOString(),
         name,
         author,
-        gridData: { cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones },
+        gridData: { cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex },
       };
 
       set((state) => {
@@ -135,7 +137,7 @@ export const useVersionStore = create<VersionStore>()(
         useGridStore.getState().loadGrid(target.gridData);
 
         // Save with evaluated formula values
-        const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
+        const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex } = useGridStore.getState();
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
           if (cell.formula) {
@@ -144,7 +146,7 @@ export const useVersionStore = create<VersionStore>()(
             cellsCopy[id] = cell;
           }
         }
-        saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones }).catch((error) => {
+        saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex }).catch((error) => {
           console.error('Failed to save restored data:', error);
         });
 
@@ -160,7 +162,9 @@ export const useVersionStore = create<VersionStore>()(
     },
 
     exportFile: () => {
-      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
+      // Sync active sheet before export
+      useGridStore.getState().syncActiveSheet();
+      const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex } = useGridStore.getState();
       const { snapshots } = get();
       // Ensure formula cells have evaluated values in the export
       const cellsCopy: Grid = {};
@@ -171,7 +175,7 @@ export const useVersionStore = create<VersionStore>()(
           cellsCopy[id] = cell;
         }
       }
-      exportCelliumFile({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones }, snapshots);
+      exportCelliumFile({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex }, snapshots);
     },
 
     importFile: async (file) => {
@@ -183,7 +187,7 @@ export const useVersionStore = create<VersionStore>()(
         useGridStore.getState().loadGrid(celliumData.grid);
 
         // Save with evaluated formula values
-        const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones } = useGridStore.getState();
+        const { cells, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex } = useGridStore.getState();
         const cellsCopy: Grid = {};
         for (const [id, cell] of Object.entries(cells)) {
           if (cell.formula) {
@@ -192,7 +196,7 @@ export const useVersionStore = create<VersionStore>()(
             cellsCopy[id] = cell;
           }
         }
-        await saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones });
+        await saveGridData({ cells: cellsCopy, rowCount, colCount, headers, colWidths, rowHeights, zones, columnTypes, rowStyles, charts, sheets, activeSheetIndex });
 
         // Evaluate formulas in imported snapshots
         for (const snap of celliumData.snapshots) {
