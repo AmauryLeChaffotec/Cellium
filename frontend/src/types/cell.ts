@@ -1,3 +1,5 @@
+export type ColumnType = 'none' | 'text' | 'number' | 'currency' | 'percentage' | 'date' | 'boolean';
+
 export interface CellFormat {
   bold?: boolean;
   currency?: string;

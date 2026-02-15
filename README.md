@@ -153,7 +153,11 @@ Aller sur `http://localhost:5173` dans le navigateur.
 
 ### Formules
 
-Les cellules supportent des formules qui se recalculent automatiquement :
+Les cellules supportent des formules qui se recalculent automatiquement. On peut utiliser les **noms de colonnes** dans les formules (ex: `=SUM(Prix1:Prix10)` au lieu de `=SUM(B1:B10)`).
+
+Une cellule avec formule peut avoir un **nom** (`name`) affiche comme label et une **description** visible au survol.
+
+#### Mathematiques / Statistiques
 
 | Formule | Description |
 |---------|-------------|
@@ -162,8 +166,56 @@ Les cellules supportent des formules qui se recalculent automatiquement :
 | `=MIN(B1:B10)` | Valeur minimale |
 | `=MAX(B1:B10)` | Valeur maximale |
 | `=COUNT(B1:B10)` | Nombre de valeurs numeriques |
+| `=COUNTA(B1:B10)` | Nombre de cellules non vides |
+| `=COUNTBLANK(B1:B10)` | Nombre de cellules vides |
+| `=MEDIAN(B1:B10)` | Mediane |
+| `=PRODUCT(B1:B10)` | Produit de toutes les valeurs |
+| `=STDEV(B1:B10)` | Ecart-type (echantillon) |
+| `=ABS(A1)` | Valeur absolue |
+| `=INT(A1)` | Partie entiere |
+| `=SQRT(A1)` | Racine carree |
+| `=ROUND(A1, 2)` | Arrondi a N decimales |
+| `=ROUNDUP(A1, 0)` | Arrondi superieur |
+| `=ROUNDDOWN(A1, 0)` | Arrondi inferieur |
+| `=MOD(A1, 3)` | Modulo (reste de la division) |
+| `=POWER(A1, 2)` | Puissance |
 
-Une cellule avec formule peut aussi avoir un **nom** (`name`) qui s'affiche comme label au-dessus de la valeur calculee.
+#### Logique
+
+| Formule | Description |
+|---------|-------------|
+| `=IF(A1>5, "Oui", "Non")` | Condition si/sinon |
+| `=AND(A1>0, B1>0)` | Vrai si toutes les conditions sont vraies |
+| `=OR(A1>0, B1>0)` | Vrai si au moins une condition est vraie |
+| `=COUNTIF(B1:B10, ">5")` | Compter les cellules selon un critere |
+| `=SUMIF(B1:B10, ">5")` | Sommer les cellules selon un critere |
+
+#### Texte
+
+| Formule | Description |
+|---------|-------------|
+| `=CONCAT(A1, " ", B1)` | Concatener des textes |
+| `=UPPER(A1)` | Majuscules |
+| `=LOWER(A1)` | Minuscules |
+| `=LEN(A1)` | Longueur du texte |
+| `=LEFT(A1, 3)` | Premiers N caracteres |
+| `=RIGHT(A1, 4)` | Derniers N caracteres |
+| `=MID(A1, 2, 3)` | Sous-chaine (position, longueur) |
+| `=TRIM(A1)` | Supprimer espaces en debut/fin |
+
+#### Date
+
+| Formule | Description |
+|---------|-------------|
+| `=TODAY()` | Date du jour (AAAA-MM-JJ) |
+| `=NOW()` | Date et heure actuelles |
+
+#### Recherche
+
+| Formule | Description |
+|---------|-------------|
+| `=VLOOKUP(valeur, A1:C10, 3)` | Recherche verticale |
+| `=HLOOKUP(valeur, A1:Z3, 2)` | Recherche horizontale |
 
 ### Selection multi-cellules et zones nommees
 

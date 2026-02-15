@@ -3,6 +3,7 @@ import { useGridStore } from '../../stores/gridStore';
 import type { ZoneResizeHandle } from '../../stores/gridStore';
 import { cellIdToCoords, coordsToCellId } from '../../utils/cellUtils';
 import { evaluateFormula, resolveColumnNames, formulaToReadable } from '../../utils/formulaEvaluator';
+import { formatValue, isValueValidForType } from '../../utils/formatValue';
 import { isCellInRange } from '../../utils/rangeUtils';
 
 // ── HandleDot: resize handle rendered at zone edges ──────────
@@ -86,7 +87,11 @@ export function Cell({ cellId }: CellProps) {
   const zones = useGridStore((s) => s.zones);
   const activeZoneId = useGridStore((s) => s.activeZoneId);
   const setActiveZone = useGridStore((s) => s.setActiveZone);
+  const columnTypes = useGridStore((s) => s.columnTypes);
   const zoneResizing = useGridStore((s) => s.zoneResizing);
+
+  const colIndex = cellIdToCoords(cellId).col;
+  const columnType = columnTypes[colIndex] ?? 'none';
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState('');
@@ -246,14 +251,21 @@ export function Cell({ cellId }: CellProps) {
   const displayValue = (() => {
     if (cellFormula) {
       const result = evaluateFormula(cellFormula, allCells, headers);
-      return result !== null ? String(result) : '';
+      return result !== null ? formatValue(result, columnType) : '';
     }
-    return cellValue !== null ? String(cellValue) : '';
+    return cellValue !== null ? formatValue(cellValue, columnType) : '';
   })();
+
+  const isNumericType = columnType === 'number' || columnType === 'currency' || columnType === 'percentage';
+
+  // Format validation: red background if value doesn't match type (skip formulas)
+  const hasFormatError = !cellFormula && cellValue !== null && cellValue !== '' && !isValueValidForType(cellValue, columnType);
 
   // Build background style
   let bgStyle: React.CSSProperties = {};
-  if (zoneColor) {
+  if (hasFormatError) {
+    bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
+  } else if (zoneColor) {
     bgStyle = { backgroundColor: `${zoneColor}20` };
   }
   if (isInSelection) {
@@ -270,11 +282,13 @@ export function Cell({ cellId }: CellProps) {
     if (activeZoneEdges.isRight)  { borderStyle.borderRightWidth = 2; borderStyle.borderRightStyle = 'solid'; borderStyle.borderRightColor = c; }
   }
 
-  const tooltip = cellDescription
-    ? cellDescription
-    : zoneInfo
-      ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
-      : undefined;
+  const tooltip = hasFormatError
+    ? 'Format incorrect pour ce type de colonne'
+    : cellDescription
+      ? cellDescription
+      : zoneInfo
+        ? `${zoneInfo.name}${zoneInfo.description ? ` — ${zoneInfo.description}` : ''}`
+        : undefined;
 
   return (
     <div
@@ -282,8 +296,12 @@ export function Cell({ cellId }: CellProps) {
         activeZoneEdges ? '' : 'overflow-hidden'
       } ${
         isSelected ? 'ring-2 ring-blue-500 ring-inset border border-transparent' : 'border border-gray-200'
-      }`}
-      style={{ ...bgStyle, ...borderStyle }}
+      } ${isNumericType ? 'text-right' : ''}`}
+      style={{
+        ...bgStyle,
+        ...borderStyle,
+        ...(hasFormatError ? { borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: '#ef4444' } : {}),
+      }}
       title={tooltip}
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}

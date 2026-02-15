@@ -12,6 +12,7 @@ import type { ContextMenuItem } from './ContextMenu';
 import { ZoneDialog } from './ZoneDialog';
 import { FormulaEditDialog } from './FormulaEditDialog';
 import type { Zone } from '../../types/zone';
+import type { ColumnType } from '../../types/cell';
 import { generateUUID } from '../../utils/uuid';
 
 interface ContextMenuState {
@@ -45,6 +46,8 @@ export function SpreadsheetGrid() {
   const startZoneResize = useGridStore((s) => s.startZoneResize);
   const updateZoneResize = useGridStore((s) => s.updateZoneResize);
   const endZoneResize = useGridStore((s) => s.endZoneResize);
+  const columnTypes = useGridStore((s) => s.columnTypes);
+  const setColumnType = useGridStore((s) => s.setColumnType);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
@@ -310,7 +313,7 @@ export function SpreadsheetGrid() {
       return items;
     }
 
-    // Formula items (if the cell has a formula)
+    // Formula items
     if (targetRow !== null && targetCol !== null) {
       const cellId = coordsToCellId(targetRow, targetCol);
       const cell = useGridStore.getState().cells[cellId];
@@ -338,6 +341,12 @@ export function SpreadsheetGrid() {
         });
         items.push({
           label: 'Modifier la formule',
+          action: () => setEditingFormulaCellId(cellId),
+        });
+        items.push({ label: '', action: () => {}, separator: true });
+      } else {
+        items.push({
+          label: 'Creer une formule',
           action: () => setEditingFormulaCellId(cellId),
         });
         items.push({ label: '', action: () => {}, separator: true });
@@ -378,6 +387,27 @@ export function SpreadsheetGrid() {
         { label: 'Insérer une colonne à droite', action: () => insertColumn(targetCol) },
         { label: 'Supprimer la colonne', action: () => deleteColumn(targetCol) },
       );
+
+      // Column type submenu
+      const currentType = columnTypes[targetCol] ?? 'none';
+      const typeOptions: { label: string; value: ColumnType }[] = [
+        { label: 'Pas de type', value: 'none' },
+        { label: 'Texte', value: 'text' },
+        { label: 'Nombre', value: 'number' },
+        { label: 'Monnaie (EUR)', value: 'currency' },
+        { label: 'Pourcentage', value: 'percentage' },
+        { label: 'Date', value: 'date' },
+        { label: 'Boolean', value: 'boolean' },
+      ];
+      items.push({ label: '', action: () => {}, separator: true });
+      items.push({
+        label: 'Type de colonne',
+        action: () => {},
+        children: typeOptions.map((opt) => ({
+          label: `${opt.label}${currentType === opt.value ? ' \u2713' : ''}`,
+          action: () => setColumnType(targetCol, opt.value),
+        })),
+      });
     }
 
     return items;

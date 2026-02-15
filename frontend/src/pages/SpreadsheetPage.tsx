@@ -4,6 +4,7 @@ import { SpreadsheetGrid } from '../components/Grid';
 import { DiffOverlay, ActionBar } from '../components/Diff';
 import { VersionPanel } from '../components/Version';
 import { AgentChat } from '../components/Agent';
+import { HelpModal } from '../components/HelpModal';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { useVersionStore } from '../stores/versionStore';
 import { useAuthStore } from '../stores/authStore';
@@ -13,6 +14,7 @@ export function SpreadsheetPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [isVersionPanelOpen, setIsVersionPanelOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const { user, logout } = useAuthStore();
 
@@ -52,6 +54,12 @@ export function SpreadsheetPage() {
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">{user?.name}</span>
           <button
+            onClick={() => setIsHelpOpen(true)}
+            className="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded border border-blue-200"
+          >
+            Aide
+          </button>
+          <button
             onClick={() => setIsVersionPanelOpen(!isVersionPanelOpen)}
             className="px-3 py-1 text-sm text-gray-700 hover:bg-gray-100 rounded border border-gray-300"
           >
@@ -72,6 +80,7 @@ export function SpreadsheetPage() {
       <ActionBar />
       <VersionPanel isOpen={isVersionPanelOpen} onClose={() => setIsVersionPanelOpen(false)} />
       <AgentChat />
+      {isHelpOpen && <HelpModal onClose={() => setIsHelpOpen(false)} />}
     </div>
   );
 }

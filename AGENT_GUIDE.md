@@ -121,7 +121,10 @@ Pour que la valeur se recalcule automatiquement quand les donnees changent, il f
 
 ## Formules disponibles
 
-Toutes les formules commencent par `=` et acceptent une plage `DEBUT:FIN` ou une cellule unique.
+Toutes les formules commencent par `=`. Les formules sont insensibles a la casse (`=sum(...)` fonctionne aussi).
+On peut utiliser les **noms de colonnes** dans les formules : `=SUM(prix1:prix10)` au lieu de `=SUM(B1:B10)`.
+
+### Mathematiques / Statistiques (plage)
 
 | Formule | Description | Exemple |
 |---------|------------|---------|
@@ -130,8 +133,71 @@ Toutes les formules commencent par `=` et acceptent une plage `DEBUT:FIN` ou une
 | `=MIN(B1:B10)` | Valeur minimale | Prix le moins cher |
 | `=MAX(B1:B10)` | Valeur maximale | Prix le plus cher |
 | `=COUNT(B1:B10)` | Nombre de valeurs numeriques | Nombre de produits avec prix |
+| `=COUNTA(B1:B10)` | Nombre de cellules non vides | Cellules remplies |
+| `=COUNTBLANK(B1:B10)` | Nombre de cellules vides | Cellules vides |
+| `=MEDIAN(B1:B10)` | Mediane des valeurs | Prix median |
+| `=PRODUCT(B1:B10)` | Produit des valeurs | Multiplication |
+| `=STDEV(B1:B10)` | Ecart-type (echantillon) | Dispersion des prix |
 
-Les formules sont insensibles a la casse (`=sum(...)` fonctionne aussi).
+### Mathematiques (valeur)
+
+| Formule | Description | Exemple |
+|---------|------------|---------|
+| `=ABS(A1)` | Valeur absolue | `=ABS(-5)` → 5 |
+| `=INT(A1)` | Partie entiere | `=INT(3.7)` → 3 |
+| `=SQRT(A1)` | Racine carree | `=SQRT(16)` → 4 |
+| `=ROUND(A1, 2)` | Arrondi a N decimales | `=ROUND(3.456, 2)` → 3.46 |
+| `=ROUNDUP(A1, 0)` | Arrondi superieur | `=ROUNDUP(3.2, 0)` → 4 |
+| `=ROUNDDOWN(A1, 0)` | Arrondi inferieur | `=ROUNDDOWN(3.8, 0)` → 3 |
+| `=MOD(A1, 3)` | Reste de la division | `=MOD(10, 3)` → 1 |
+| `=POWER(A1, 2)` | Puissance | `=POWER(3, 2)` → 9 |
+
+### Logique
+
+| Formule | Description | Exemple |
+|---------|------------|---------|
+| `=IF(A1>5, "Oui", "Non")` | Condition si/sinon | Resultat conditionnel |
+| `=IFERROR(A1/B1, 0)` | Valeur alternative si erreur | Eviter les erreurs #N/A, #DIV/0 |
+| `=AND(A1>0, B1>0)` | ET logique | Toutes les conditions vraies |
+| `=OR(A1>0, B1>0)` | OU logique | Au moins une condition vraie |
+| `=COUNTIF(B1:B10, ">5")` | Compter selon critere | Nombres > 5 |
+| `=SUMIF(B1:B10, ">5")` | Sommer selon critere | Somme des nombres > 5 |
+| `=COUNTIFS(A1:A10, ">5", B1:B10, "<10")` | Compter selon plusieurs criteres | Criteres multiples |
+| `=SUMIFS(C1:C10, A1:A10, ">5", B1:B10, "<10")` | Sommer selon plusieurs criteres | Somme multi-criteres |
+
+### Texte
+
+| Formule | Description | Exemple |
+|---------|------------|---------|
+| `=CONCAT(A1, " ", B1)` | Concatener des textes | Assembler des valeurs |
+| `=UPPER(A1)` | Convertir en majuscules | "hello" → "HELLO" |
+| `=LOWER(A1)` | Convertir en minuscules | "HELLO" → "hello" |
+| `=LEN(A1)` | Longueur du texte | `=LEN("Bonjour")` → 7 |
+| `=LEFT(A1, 3)` | N premiers caracteres | `=LEFT("Bonjour", 3)` → "Bon" |
+| `=RIGHT(A1, 4)` | N derniers caracteres | `=RIGHT("Bonjour", 4)` → "jour" |
+| `=MID(A1, 2, 3)` | Sous-chaine (position, longueur) | `=MID("Bonjour", 2, 3)` → "onj" |
+| `=TRIM(A1)` | Supprimer espaces en debut/fin | Nettoyer le texte |
+
+### Date
+
+| Formule | Description | Exemple |
+|---------|------------|---------|
+| `=TODAY()` | Date du jour (YYYY-MM-DD) | 2026-02-15 |
+| `=NOW()` | Date et heure actuelles | 2026-02-15 14:30 |
+| `=DATE(2024, 1, 15)` | Creer une date | Annee, mois, jour |
+| `=YEAR(A1)` | Extraire l'annee d'une date | 2024 |
+| `=MONTH(A1)` | Extraire le mois d'une date | 1 a 12 |
+| `=DAY(A1)` | Extraire le jour d'une date | 1 a 31 |
+
+### Recherche
+
+| Formule | Description | Exemple |
+|---------|------------|---------|
+| `=VLOOKUP(valeur, A1:C10, 3)` | Recherche verticale | Chercher dans la 1ere colonne, retourner la 3eme |
+| `=HLOOKUP(valeur, A1:Z3, 2)` | Recherche horizontale | Chercher dans la 1ere ligne, retourner la 2eme |
+| `=XLOOKUP(valeur, A1:A10, B1:B10, "N/A")` | Recherche flexible | Chercher dans une plage, retourner depuis une autre |
+| `=INDEX(A1:C10, 2, 3)` | Valeur a une position | Retourne la valeur a la ligne 2, colonne 3 |
+| `=MATCH(valeur, A1:A10)` | Position d'une valeur | Retourne la position (1-based) dans la plage |
 
 ## Zones nommees
 

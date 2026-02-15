@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { Grid, CellFormat } from '../types/cell';
+import type { Grid, CellFormat, ColumnType } from '../types/cell';
 import type { Zone } from '../types/zone';
 import type { GridPersistData } from '../utils/persistence';
 import { cellIdToCoords, coordsToCellId, columnIndexToLetter } from '../utils/cellUtils';
@@ -103,6 +103,10 @@ function defaultRowHeights(count: number): number[] {
   return Array.from({ length: count }, () => DEFAULT_ROW_HEIGHT);
 }
 
+function defaultColumnTypes(count: number): ColumnType[] {
+  return Array.from({ length: count }, () => 'none' as ColumnType);
+}
+
 interface GridState {
   cells: Grid;
   rowCount: number;
@@ -110,6 +114,7 @@ interface GridState {
   headers: string[];
   colWidths: number[];
   rowHeights: number[];
+  columnTypes: ColumnType[];
   zones: Zone[];
   editingCell: string | null;
   selectedCell: string | null;
@@ -150,6 +155,7 @@ interface GridActions {
   deleteRow: (row: number) => void;
   insertColumn: (afterCol: number) => void;
   deleteColumn: (col: number) => void;
+  setColumnType: (colIndex: number, type: ColumnType) => void;
   setHeader: (colIndex: number, name: string) => void;
   setColWidth: (colIndex: number, width: number) => void;
   setRowHeight: (rowIndex: number, height: number) => void;
@@ -164,6 +170,7 @@ export const useGridStore = create<GridState & GridActions>()(
     headers: defaultHeaders(26),
     colWidths: defaultColWidths(26),
     rowHeights: defaultRowHeights(100),
+    columnTypes: defaultColumnTypes(26),
     zones: [],
     editingCell: null,
     selectedCell: null,
@@ -181,6 +188,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.headers = defaultHeaders(cols);
         state.colWidths = defaultColWidths(cols);
         state.rowHeights = defaultRowHeights(rows);
+        state.columnTypes = defaultColumnTypes(cols);
         state.zones = [];
       }),
 
@@ -565,6 +573,7 @@ export const useGridStore = create<GridState & GridActions>()(
         }
         state.headers.splice(afterCol + 1, 0, newName);
         state.colWidths.splice(afterCol + 1, 0, DEFAULT_COL_WIDTH);
+        state.columnTypes.splice(afterCol + 1, 0, 'none');
 
         // Update zone boundaries
         for (const zone of state.zones) {
@@ -611,6 +620,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.colCount -= 1;
         state.headers.splice(targetCol, 1);
         state.colWidths.splice(targetCol, 1);
+        state.columnTypes.splice(targetCol, 1);
 
         // Update zone boundaries (remove zones that collapse)
         state.zones = state.zones.filter((zone) => {
@@ -645,6 +655,13 @@ export const useGridStore = create<GridState & GridActions>()(
         }
       }),
 
+    setColumnType: (colIndex, type) =>
+      set((state) => {
+        if (colIndex >= 0 && colIndex < state.columnTypes.length) {
+          state.columnTypes[colIndex] = type;
+        }
+      }),
+
     setHeader: (colIndex, name) =>
       set((state) => {
         if (colIndex >= 0 && colIndex < state.headers.length) {
@@ -674,6 +691,7 @@ export const useGridStore = create<GridState & GridActions>()(
         state.headers = data.headers ?? defaultHeaders(data.colCount);
         state.colWidths = data.colWidths ?? defaultColWidths(data.colCount);
         state.rowHeights = data.rowHeights ?? defaultRowHeights(data.rowCount);
+        state.columnTypes = data.columnTypes ?? defaultColumnTypes(data.colCount);
         state.zones = data.zones ?? [];
         state.editingCell = null;
         state.selectedCell = null;

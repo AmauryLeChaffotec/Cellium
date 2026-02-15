@@ -1,9 +1,21 @@
 import { useCallback, useRef, useState } from 'react';
 import { useGridStore } from '../../stores/gridStore';
+import type { ColumnType } from '../../types/cell';
+
+const TYPE_LABELS: Record<ColumnType, string | null> = {
+  none: null,
+  text: 'Abc',
+  number: '123',
+  currency: 'EUR',
+  percentage: '%',
+  date: 'Date',
+  boolean: 'V/F',
+};
 
 export function GridHeader() {
   const headers = useGridStore((s) => s.headers);
   const colWidths = useGridStore((s) => s.colWidths);
+  const columnTypes = useGridStore((s) => s.columnTypes);
   const setColWidth = useGridStore((s) => s.setColWidth);
   const setHeader = useGridStore((s) => s.setHeader);
   const dragRef = useRef<{ colIndex: number; startX: number; startWidth: number } | null>(null);
@@ -84,7 +96,14 @@ export function GridHeader() {
               className="w-full h-full text-center text-sm font-medium outline-none border-2 border-blue-500 bg-white"
             />
           ) : (
-            name
+            <>
+              {name}
+              {TYPE_LABELS[columnTypes[i]] && (
+                <span className="absolute bottom-0 right-1 text-[9px] text-gray-400 font-normal leading-none">
+                  {TYPE_LABELS[columnTypes[i]]}
+                </span>
+              )}
+            </>
           )}
           {/* Resize handle */}
           <div

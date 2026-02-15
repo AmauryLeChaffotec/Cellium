@@ -1,4 +1,4 @@
-import type { Grid } from '../types/cell';
+import type { Grid, ColumnType } from '../types/cell';
 import type { Zone } from '../types/zone';
 import { apiFetch } from './api';
 
@@ -9,6 +9,7 @@ export interface GridPersistData {
   headers: string[];
   colWidths?: number[];
   rowHeights?: number[];
+  columnTypes?: ColumnType[];
   zones?: Zone[];
 }
 
