@@ -124,15 +124,31 @@ Pour que la valeur se recalcule automatiquement quand les donnees changent, il f
 Toutes les formules commencent par `=`. Les formules sont insensibles a la casse (`=sum(...)` fonctionne aussi).
 On peut utiliser les **noms de colonnes** dans les formules : `=SUM(prix1:prix10)` au lieu de `=SUM(B1:B10)`.
 
+### Types de plages supportees
+
+Les formules acceptent trois types de plages :
+- **Plage verticale** : `A1:A10` (une colonne, plusieurs lignes)
+- **Plage horizontale** : `A1:Z1` (une ligne, plusieurs colonnes)
+- **Plage 2D** : `A1:C10` (bloc de cellules)
+
+Les formules d'agregation (SUM, AVERAGE, MIN, MAX, COUNT, etc.) supportent **plusieurs plages** separees par des virgules :
+```
+=SUM(A1:A10, C1:C10, E5)
+=AVERAGE(B1:B10, D1:D10)
+=MIN(A1:Z1, A5:Z5)
+```
+
 ### Mathematiques / Statistiques (plage)
+
+Ces formules acceptent une ou plusieurs plages, cellules, ou valeurs separees par des virgules.
 
 | Formule | Description | Exemple |
 |---------|------------|---------|
-| `=SUM(B1:B10)` | Somme des valeurs | Total des prix |
-| `=AVERAGE(B1:B10)` | Moyenne des valeurs | Prix moyen |
-| `=MIN(B1:B10)` | Valeur minimale | Prix le moins cher |
-| `=MAX(B1:B10)` | Valeur maximale | Prix le plus cher |
-| `=COUNT(B1:B10)` | Nombre de valeurs numeriques | Nombre de produits avec prix |
+| `=SUM(B1:B10)` | Somme des valeurs | `=SUM(B1:B10, C1:C10, D5)` |
+| `=AVERAGE(B1:B10)` | Moyenne des valeurs | `=AVERAGE(A1:A10, B1:B10)` |
+| `=MIN(B1:B10)` | Valeur minimale | `=MIN(A1:Z1)` plage horizontale |
+| `=MAX(B1:B10)` | Valeur maximale | `=MAX(A1:A10, C1:C10)` |
+| `=COUNT(B1:B10)` | Nombre de valeurs numeriques | `=COUNT(A1:C10)` plage 2D |
 | `=COUNTA(B1:B10)` | Nombre de cellules non vides | Cellules remplies |
 | `=COUNTBLANK(B1:B10)` | Nombre de cellules vides | Cellules vides |
 | `=MEDIAN(B1:B10)` | Mediane des valeurs | Prix median |

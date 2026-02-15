@@ -6,14 +6,14 @@ const formulaSections = [
   {
     title: 'Mathematiques / Statistiques (plage)',
     formulas: [
-      { name: 'SUM', syntax: '=SUM(B1:B10)', desc: 'Somme des valeurs de la plage' },
-      { name: 'AVERAGE', syntax: '=AVERAGE(B1:B10)', desc: 'Moyenne des valeurs' },
-      { name: 'MIN', syntax: '=MIN(B1:B10)', desc: 'Valeur minimale' },
-      { name: 'MAX', syntax: '=MAX(B1:B10)', desc: 'Valeur maximale' },
-      { name: 'COUNT', syntax: '=COUNT(B1:B10)', desc: 'Nombre de valeurs numeriques' },
-      { name: 'COUNTA', syntax: '=COUNTA(B1:B10)', desc: 'Nombre de cellules non vides' },
+      { name: 'SUM', syntax: '=SUM(B1:B10, C1:C10, D5)', desc: 'Somme — multi-plages, verticale ou horizontale' },
+      { name: 'AVERAGE', syntax: '=AVERAGE(B1:B10, C1:C10)', desc: 'Moyenne — multi-plages' },
+      { name: 'MIN', syntax: '=MIN(B1:B10, C1:C10)', desc: 'Valeur minimale — multi-plages' },
+      { name: 'MAX', syntax: '=MAX(B1:B10, C1:C10)', desc: 'Valeur maximale — multi-plages' },
+      { name: 'COUNT', syntax: '=COUNT(B1:B10, C1:C10)', desc: 'Nombre de valeurs numeriques — multi-plages' },
+      { name: 'COUNTA', syntax: '=COUNTA(B1:B10, C1:C10)', desc: 'Cellules non vides — multi-plages' },
       { name: 'COUNTBLANK', syntax: '=COUNTBLANK(B1:B10)', desc: 'Nombre de cellules vides' },
-      { name: 'MEDIAN', syntax: '=MEDIAN(B1:B10)', desc: 'Mediane des valeurs' },
+      { name: 'MEDIAN', syntax: '=MEDIAN(B1:B10, C1:C10)', desc: 'Mediane — multi-plages' },
       { name: 'PRODUCT', syntax: '=PRODUCT(B1:B10)', desc: 'Produit de toutes les valeurs' },
       { name: 'STDEV', syntax: '=STDEV(B1:B10)', desc: 'Ecart-type (echantillon)' },
     ],
@@ -152,6 +152,20 @@ export function HelpModal({ onClose }: HelpModalProps) {
             <p className="text-gray-400 text-xs mt-1.5">
               Insensible a la casse : sum, SUM, Sum fonctionnent tous.
             </p>
+          </section>
+
+          {/* Types de plages */}
+          <section>
+            <h3 className="text-base font-semibold text-gray-800 mb-2">Types de plages</h3>
+            <p className="text-sm text-gray-600 mb-2">
+              Les formules supportent trois types de plages et peuvent combiner plusieurs plages :
+            </p>
+            <div className="bg-gray-50 rounded-lg p-3 font-mono text-xs space-y-2 border border-gray-200">
+              <p><strong className="text-gray-700 font-sans">Verticale :</strong> <span className="text-green-700">=SUM(A1:A10)</span> — une colonne, plusieurs lignes</p>
+              <p><strong className="text-gray-700 font-sans">Horizontale :</strong> <span className="text-green-700">=SUM(A1:Z1)</span> — une ligne, plusieurs colonnes</p>
+              <p><strong className="text-gray-700 font-sans">2D :</strong> <span className="text-green-700">=SUM(A1:C10)</span> — bloc de cellules</p>
+              <p><strong className="text-gray-700 font-sans">Multi-plages :</strong> <span className="text-green-700">=SUM(A1:A10, C1:C10, E5)</span> — combine plages et cellules</p>
+            </div>
           </section>
 
           {/* Formules */}

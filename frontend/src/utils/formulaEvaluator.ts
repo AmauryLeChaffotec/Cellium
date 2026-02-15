@@ -7,6 +7,8 @@
  *           TODAY, NOW, DATE, YEAR, MONTH, DAY,
  *           VLOOKUP, HLOOKUP, XLOOKUP, INDEX, MATCH
  * Supports column names in formulas (e.g., "=SUM(Population1:Population66)")
+ * Supports multi-range arguments: =SUM(A1:A10, C1:C10, E5)
+ * Supports vertical (A1:A10), horizontal (A1:Z1), and 2D (A1:C10) ranges
  */
 
 import type { Grid } from '../types/cell';
@@ -306,6 +308,51 @@ function evaluateCondition(condStr: string, cells: Grid): boolean {
   return !!val && val !== 0 && val !== '0' && val !== 'FALSE';
 }
 
+// ─── Multi-range helpers ───────────────────────────────────────────────
+
+/**
+ * Collect numeric values from multiple arguments.
+ * Each argument can be a range (A1:B10), a cell reference (A1), or a literal number.
+ */
+function getMultiRangeValues(args: string[], cells: Grid): number[] {
+  const values: number[] = [];
+  for (const arg of args) {
+    if (isRange(arg)) {
+      values.push(...getRangeValues(arg, cells));
+    } else if (isCellRef(arg)) {
+      const cellValue = cells[arg.toUpperCase()]?.value;
+      if (typeof cellValue === 'number') {
+        values.push(cellValue);
+      } else if (typeof cellValue === 'string') {
+        const num = Number(cellValue);
+        if (!isNaN(num)) values.push(num);
+      }
+    } else {
+      const num = Number(arg);
+      if (!isNaN(num) && arg.trim() !== '') values.push(num);
+    }
+  }
+  return values;
+}
+
+/**
+ * Collect raw values (string | number | null) from multiple arguments.
+ * Each argument can be a range, a cell reference, or a literal.
+ */
+function getMultiRangeRawValues(args: string[], cells: Grid): (string | number | null)[] {
+  const values: (string | number | null)[] = [];
+  for (const arg of args) {
+    if (isRange(arg)) {
+      values.push(...getRangeRawValues(arg, cells));
+    } else if (isCellRef(arg)) {
+      values.push(cells[arg.toUpperCase()]?.value ?? null);
+    } else {
+      values.push(resolveArg(arg, cells));
+    }
+  }
+  return values;
+}
+
 // ─── Column index to letter ────────────────────────────────────────────
 
 function columnIndexToLetter(index: number): string {
@@ -351,46 +398,46 @@ export function evaluateFormula(formula: string, cells: Grid, headers?: string[]
       // ─── Math / Stats (range-based) ────────────────────────────
 
       case 'SUM': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         return values.reduce((a, b) => a + b, 0);
       }
 
       case 'AVERAGE': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length === 0) return 0;
         const sum = values.reduce((a, b) => a + b, 0);
         return Number((sum / values.length).toFixed(2));
       }
 
       case 'MIN': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length === 0) return 0;
         return Math.min(...values);
       }
 
       case 'MAX': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length === 0) return 0;
         return Math.max(...values);
       }
 
       case 'COUNT': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         return values.length;
       }
 
       case 'COUNTA': {
-        const rawValues = getRangeRawValues(args[0], cells);
+        const rawValues = getMultiRangeRawValues(args, cells);
         return rawValues.filter(v => v !== null && v !== '' && v !== undefined).length;
       }
 
       case 'COUNTBLANK': {
-        const rawValues = getRangeRawValues(args[0], cells);
+        const rawValues = getMultiRangeRawValues(args, cells);
         return rawValues.filter(v => v === null || v === '' || v === undefined).length;
       }
 
       case 'MEDIAN': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length === 0) return 0;
         const sorted = [...values].sort((a, b) => a - b);
         const mid = Math.floor(sorted.length / 2);
@@ -400,13 +447,13 @@ export function evaluateFormula(formula: string, cells: Grid, headers?: string[]
       }
 
       case 'PRODUCT': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length === 0) return 0;
         return values.reduce((a, b) => a * b, 1);
       }
 
       case 'STDEV': {
-        const values = getRangeValues(args[0], cells);
+        const values = getMultiRangeValues(args, cells);
         if (values.length < 2) return 0;
         const mean = values.reduce((a, b) => a + b, 0) / values.length;
         const variance = values.reduce((sum, v) => sum + Math.pow(v - mean, 2), 0) / (values.length - 1);
