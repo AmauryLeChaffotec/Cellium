@@ -16,3 +16,8 @@ export interface Cell {
 }
 
 export type Grid = Record<string, Cell>;
+
+export interface RowStyle {
+  type?: 'header' | 'separator';
+  backgroundColor?: string;
+}

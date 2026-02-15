@@ -48,6 +48,8 @@ export function SpreadsheetGrid() {
   const endZoneResize = useGridStore((s) => s.endZoneResize);
   const columnTypes = useGridStore((s) => s.columnTypes);
   const setColumnType = useGridStore((s) => s.setColumnType);
+  const rowStyles = useGridStore((s) => s.rowStyles);
+  const setRowStyle = useGridStore((s) => s.setRowStyle);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const rowNumbersRef = useRef<HTMLDivElement>(null);
@@ -376,6 +378,50 @@ export function SpreadsheetGrid() {
         { label: 'Insérer une ligne en-dessous', action: () => insertRow(targetRow) },
         { label: 'Supprimer la ligne', action: () => deleteRow(targetRow) },
       );
+
+      // Row style submenu
+      const rowIdx = targetRow - 1; // 0-based index
+      const currentRowStyle = rowStyles[rowIdx] ?? null;
+      const rowColorOptions = [
+        { label: 'Bleu clair',   value: '#dbeafe' },
+        { label: 'Vert clair',   value: '#dcfce7' },
+        { label: 'Jaune clair',  value: '#fef9c3' },
+        { label: 'Orange clair', value: '#ffedd5' },
+        { label: 'Rouge clair',  value: '#fee2e2' },
+        { label: 'Violet clair', value: '#f3e8ff' },
+        { label: 'Gris clair',   value: '#f1f5f9' },
+      ];
+
+      const styleChildren: ContextMenuItem[] = [
+        {
+          label: `Titre de section${currentRowStyle?.type === 'header' ? ' \u2713' : ''}`,
+          action: () => setRowStyle(rowIdx, { type: 'header', backgroundColor: currentRowStyle?.backgroundColor }),
+        },
+        {
+          label: `Séparateur${currentRowStyle?.type === 'separator' ? ' \u2713' : ''}`,
+          action: () => setRowStyle(rowIdx, { type: 'separator', backgroundColor: currentRowStyle?.backgroundColor }),
+        },
+        { label: '', action: () => {}, separator: true },
+        ...rowColorOptions.map((opt) => ({
+          label: `${opt.label}${currentRowStyle?.backgroundColor === opt.value ? ' \u2713' : ''}`,
+          action: () => setRowStyle(rowIdx, { ...currentRowStyle, type: currentRowStyle?.type, backgroundColor: opt.value }),
+        })),
+      ];
+
+      if (currentRowStyle) {
+        styleChildren.push({ label: '', action: () => {}, separator: true });
+        styleChildren.push({
+          label: 'Effacer le style',
+          action: () => setRowStyle(rowIdx, null),
+        });
+      }
+
+      items.push({ label: '', action: () => {}, separator: true });
+      items.push({
+        label: 'Style de ligne',
+        action: () => {},
+        children: styleChildren,
+      });
     }
 
     if (targetCol !== null) {
@@ -441,21 +487,35 @@ export function SpreadsheetGrid() {
 
       {/* Row numbers — scroll vertical synced */}
       <div ref={rowNumbersRef} className="overflow-hidden z-10">
-        {Array.from({ length: rowCount }, (_, i) => (
-          <div
-            key={i + 1}
-            data-row-header={i + 1}
-            className="relative bg-slate-50 text-center text-gray-400 text-xs font-medium border-b border-r border-gray-200 flex items-center justify-center select-none"
-            style={{ height: rowHeights[i] ?? 32 }}
-          >
-            {i + 1}
-            {/* Row resize handle */}
+        {Array.from({ length: rowCount }, (_, i) => {
+          const rs = rowStyles[i] ?? null;
+          const isSep = rs?.type === 'separator';
+          const isHdr = rs?.type === 'header';
+          const hdrBg = isHdr ? (rs.backgroundColor ?? '#4f46e5') : undefined;
+          const rowBg = rs?.backgroundColor && !isHdr && !isSep ? rs.backgroundColor : undefined;
+
+          return (
             <div
-              className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-blue-400 z-10"
-              onMouseDown={(e) => handleRowResizeMouseDown(e, i)}
-            />
-          </div>
-        ))}
+              key={i + 1}
+              data-row-header={i + 1}
+              className={`relative text-center text-xs font-medium border-b border-r border-gray-200 flex items-center justify-center select-none ${
+                isHdr ? 'text-white font-bold' : isSep ? '' : 'text-gray-400'
+              }`}
+              style={{
+                height: rowHeights[i] ?? 32,
+                ...(isHdr ? { backgroundColor: hdrBg } : isSep ? { backgroundColor: rs.backgroundColor ?? '#d1d5db' } : { backgroundColor: rowBg ?? undefined }),
+                ...(!isHdr && !isSep && !rowBg ? { backgroundColor: '#f8fafc' } : {}),
+              }}
+            >
+              {!isSep && (i + 1)}
+              {/* Row resize handle */}
+              <div
+                className="absolute bottom-0 left-0 w-full h-1 cursor-row-resize hover:bg-blue-400 z-10"
+                onMouseDown={(e) => handleRowResizeMouseDown(e, i)}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Virtualized cell grid */}

@@ -88,11 +88,13 @@ export function Cell({ cellId }: CellProps) {
   const activeZoneId = useGridStore((s) => s.activeZoneId);
   const setActiveZone = useGridStore((s) => s.setActiveZone);
   const columnTypes = useGridStore((s) => s.columnTypes);
+  const rowStyles = useGridStore((s) => s.rowStyles);
   const zoneResizing = useGridStore((s) => s.zoneResizing);
 
   const { row: rowIndex, col: colIndex } = cellIdToCoords(cellId);
   const columnType = columnTypes[colIndex] ?? 'none';
   const isEvenRow = rowIndex % 2 === 0;
+  const rowStyle = rowStyles[rowIndex - 1] ?? null;
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [inputValue, setInputValue] = useState('');
@@ -233,6 +235,17 @@ export function Cell({ cellId }: CellProps) {
     }
   };
 
+  // Separator row: render a thin colored bar, no text/interaction
+  if (rowStyle?.type === 'separator') {
+    return (
+      <div
+        className="w-full h-full"
+        style={{ backgroundColor: rowStyle.backgroundColor ?? '#d1d5db' }}
+        data-testid={`cell-${cellId}`}
+      />
+    );
+  }
+
   if (isEditing) {
     return (
       <div className="w-full h-full border border-gray-200 p-0">
@@ -262,18 +275,29 @@ export function Cell({ cellId }: CellProps) {
   // Format validation: red background if value doesn't match type (skip formulas)
   const hasFormatError = !cellFormula && cellValue !== null && cellValue !== '' && !isValueValidForType(cellValue, columnType);
 
-  // Build background style
+  // Header row styling
+  const isHeaderRow = rowStyle?.type === 'header';
+  const headerBg = isHeaderRow ? (rowStyle.backgroundColor ?? '#4f46e5') : null;
+
+  // Build background style (priority: zebra < row color < zone < error < selection < header)
   let bgStyle: React.CSSProperties = {};
-  if (isEvenRow) {
-    bgStyle = { backgroundColor: '#f1f5f9' }; // slate-100 for zebra striping
-  }
-  if (hasFormatError) {
-    bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
-  } else if (zoneColor) {
-    bgStyle = { backgroundColor: `${zoneColor}20` };
-  }
-  if (isInSelection) {
-    bgStyle = { backgroundColor: 'rgba(99, 102, 241, 0.12)' };
+  if (isHeaderRow) {
+    bgStyle = { backgroundColor: headerBg!, color: '#fff' };
+  } else {
+    if (isEvenRow) {
+      bgStyle = { backgroundColor: '#f1f5f9' };
+    }
+    if (rowStyle?.backgroundColor) {
+      bgStyle = { backgroundColor: rowStyle.backgroundColor };
+    }
+    if (hasFormatError) {
+      bgStyle = { backgroundColor: 'rgba(239, 68, 68, 0.15)' };
+    } else if (zoneColor) {
+      bgStyle = { backgroundColor: `${zoneColor}20` };
+    }
+    if (isInSelection) {
+      bgStyle = { backgroundColor: 'rgba(99, 102, 241, 0.12)' };
+    }
   }
 
   // Build border style for active zone edges
@@ -296,11 +320,13 @@ export function Cell({ cellId }: CellProps) {
 
   return (
     <div
-      className={`relative w-full h-full px-1 py-1 text-sm cursor-default break-words select-none ${
+      className={`relative w-full h-full px-1 py-1 cursor-default break-words select-none ${
+        isHeaderRow ? 'text-base font-bold flex items-center' : 'text-sm'
+      } ${
         activeZoneEdges ? '' : 'overflow-hidden'
       } ${
         isSelected ? 'ring-2 ring-indigo-500 ring-inset border border-transparent' : 'border border-gray-200/80'
-      } ${isNumericType ? 'text-right' : ''}`}
+      } ${isNumericType && !isHeaderRow ? 'text-right' : ''}`}
       style={{
         ...bgStyle,
         ...borderStyle,
