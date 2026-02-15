@@ -1,6 +1,6 @@
 # Cellium
 
-Cellium est un tableur collaboratif web avec un agent IA integre. L'application permet de manipuler des donnees dans une grille interactive, de creer des formules, de definir des zones nommees, et de piloter le tableur en langage naturel grace a un agent Claude Code connecte directement dans l'interface.
+Cellium est un tableur web avec agent IA integre. L'application permet de creer des comptes, gerer plusieurs tableurs, manipuler des donnees dans une grille interactive, creer des formules et des graphiques, mettre en forme les tableaux, et piloter le tout en langage naturel grace a un agent Claude Code connecte directement dans l'interface.
 
 ## Architecture globale
 
@@ -8,14 +8,14 @@ Cellium est un tableur collaboratif web avec un agent IA integre. L'application 
 ┌─────────────────────────────────────────────────────────────┐
 │                     Navigateur (Frontend)                    │
 │                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌───────────────────┐  │
-│  │ SpreadsheetGrid│ │ VersionPanel │ │   AgentChat       │  │
-│  │ (react-window) │ │  (snapshots) │ │ (chat flottant)   │  │
-│  └──────┬───────┘  └──────┬───────┘  └───────┬───────────┘  │
+│  ┌──────────┐  ┌──────────────┐  ┌──────────────┐  ┌─────────┐  │
+│  │Dashboard │  │SpreadsheetGrid│ │ VersionPanel │ │AgentChat│  │
+│  │(tableurs)│  │(react-window) │ │  (snapshots) │ │ (chat)  │  │
+│  └────┬─────┘  └──────┬───────┘  └──────┬───────┘ └───┬─────┘  │
 │         │                 │                   │              │
-│  ┌──────┴─────────────────┴───────────────────┴──────────┐  │
-│  │              Zustand Stores (gridStore, versionStore,  │  │
-│  │                          agentStore)                   │  │
+│  ┌──────┴──────────────────┴──────────────────┴─────────┴──┐  │
+│  │         Zustand Stores (authStore, gridStore,           │  │
+│  │              versionStore, agentStore)                   │  │
 │  └──────────────────────────┬────────────────────────────┘  │
 │                             │ HTTP (fetch)                   │
 └─────────────────────────────┼───────────────────────────────┘
@@ -24,9 +24,10 @@ Cellium est un tableur collaboratif web avec un agent IA integre. L'application 
                     │   Flask Backend   │
                     │   (port 5001)     │
                     │                   │
+                    │  /api/auth/*      │──── SQLite (users)
+                    │  /api/spreadsheets│──── CRUD tableurs
                     │  /api/data        │──── Lecture/ecriture
-                    │  /api/session     │     spreadsheet.json
-                    │  /api/agent/chat  │─┐
+                    │  /api/agent/chat  │─┐   spreadsheet.json
                     └───────────────────┘ │
                                           │ subprocess
                               ┌───────────▼───────────┐
@@ -383,17 +384,13 @@ Dans le chat de l'application :
 - "Mets la colonne prix en euros" → l'agent definit le type `currency`
 - "Cree un graphique en barres des ventes" → l'agent ajoute un graphique avec la bonne plage
 
-### Authentification
+### Authentification et gestion des tableurs
 
-Systeme d'inscription / connexion avec JWT :
-- Inscription avec nom d'utilisateur et mot de passe (hache avec bcrypt)
-- Connexion avec token JWT (valide 72h)
-- Chaque utilisateur a ses propres sessions de tableur
-- Base de donnees SQLite pour les utilisateurs
-
-### Sessions
-
-Chaque utilisateur peut creer plusieurs sessions de tableur. Les donnees sont isolees dans `data/sessions/{uuid}/spreadsheet.json`. Cela permet a plusieurs utilisateurs d'utiliser l'application simultanement sans conflit.
+- Inscription / connexion avec email et mot de passe (hache avec bcrypt)
+- Token JWT (valide 72h)
+- Chaque utilisateur possede ses propres tableurs
+- Dashboard pour creer, renommer et supprimer des tableurs
+- Les donnees de chaque tableur sont isolees dans `data/sessions/{uuid}/spreadsheet.json`
 
 ### Aide integree
 
@@ -407,17 +404,20 @@ Modal d'aide accessible depuis l'interface avec :
 
 | Methode | Route | Description |
 |---------|-------|-------------|
-| POST | `/api/auth/register` | Inscription (username, password) |
+| POST | `/api/auth/register` | Inscription (email, password, name) |
 | POST | `/api/auth/login` | Connexion (retourne un token JWT) |
-| POST | `/api/session` | Creer une nouvelle session |
-| GET | `/api/session/:id` | Verifier qu'une session existe |
-| GET | `/api/data` | Lire les donnees de la session |
+| GET | `/api/auth/me` | Infos de l'utilisateur connecte |
+| GET | `/api/spreadsheets` | Lister les tableurs de l'utilisateur |
+| POST | `/api/spreadsheets` | Creer un nouveau tableur |
+| PATCH | `/api/spreadsheets/:id` | Renommer un tableur |
+| DELETE | `/api/spreadsheets/:id` | Supprimer un tableur |
+| GET | `/api/data` | Lire les donnees d'un tableur |
 | POST | `/api/data` | Sauvegarder la grille et/ou un snapshot |
 | DELETE | `/api/data/snapshot/:id` | Supprimer un snapshot |
 | GET | `/api/data/lastmod` | Timestamp de derniere modification |
 | POST | `/api/agent/chat` | Envoyer un message a l'agent IA |
 
-Les routes d'authentification sont publiques. Les autres routes necessitent un token JWT (header `Authorization: Bearer <token>`) et le header `X-Session-Id`.
+Les routes d'authentification (`register`, `login`) sont publiques. Les autres routes necessitent un token JWT (header `Authorization: Bearer <token>`) et le header `X-Session-Id` pour identifier le tableur.
 
 ## Developpement
 
